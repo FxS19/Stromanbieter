@@ -15,6 +15,11 @@ app.use(express.static("public"));
 app.use(bodyParser.json())
 
 // https://expressjs.com/en/starter/basic-routing.html
+app.get("/", (request, response) => {
+  response.sendFile(__dirname + "/views/index.html");
+});
+
+// https://expressjs.com/en/starter/basic-routing.html
 app.get("/cakes", (request, response) => {
   response.json(cakes);
 });
@@ -44,7 +49,6 @@ app.post('/cakes',  (request, response) => {
     } catch (error) {
       response.status("400").send({error: "Wrong message"});
     }
-    
 });
 
 
