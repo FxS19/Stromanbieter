@@ -8,6 +8,9 @@ const bodyParser = require("body-parser");
 const { request } = require("express");
 const app = express();
 
+const provideDatabase = require('./database');
+const database = provideDatabase();
+
 // make all the files in 'public' available
 // https://expressjs.com/en/starter/static-files.html
 app.use(express.static("public"));
@@ -19,7 +22,7 @@ app.get("/", (request, response) => {
   response.sendFile(__dirname + "/views/index.html");
 });
 
-require("./cakes/server")(app);
+require("./cakes/server")(app, database);
 require("./producers/server")(app);
 
 // listen for requests :)

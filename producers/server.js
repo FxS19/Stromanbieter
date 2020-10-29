@@ -1,5 +1,9 @@
 let producers = require ("./producers");
 
+/**
+ * Add functions needed for producers
+ * @param {express} app - app element of express.
+ */
 function run(app){
   app.get('/producers' , (request, response) => {
     response.send(producers);
