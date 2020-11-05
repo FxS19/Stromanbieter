@@ -18,12 +18,10 @@ app.use(express.static("public"));
 app.use(bodyParser.json())
 
 // https://expressjs.com/en/starter/basic-routing.html
-app.get("/", (request, response) => {
+/*app.get("/", (request, response) => {
   response.sendFile(__dirname + "/views/index.html");
-});
+});*/
 
-require("./cakes/server")(app, database);
-require("./producers/server")(app);
 
 // listen for requests :)
 const listener = app.listen(8080, () => {
