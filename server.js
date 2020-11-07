@@ -8,6 +8,9 @@ const bodyParser = require("body-parser");
 const { request } = require("express");
 const app = express();
 
+const importer = require("./import");
+importer.importData();
+
 const provideDatabase = require('./database');
 const database = provideDatabase();
 
