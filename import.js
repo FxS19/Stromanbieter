@@ -1,7 +1,7 @@
 /**
  * Diese Datei beinhaltet Funktionen zum Importieren einer CSV Datei in die Datenbank
 */
-const csv = require('csv-parser');
+const parse = require('csv-parse');
 const fs = require('fs');
 
 const provideDatabase = require('./database');
@@ -22,37 +22,76 @@ class Importer {
     static async parseData(data) {
         console.log(data);
         await Importer.importTarife(data);
+        await Importer.importPLZ(data);
     }
 
     /**
      * Lese vorhandenen Tarife aus dem csv import
-     * Falls es neue Tarife gibt, werden diese in diue Datenbank 
+     * Falls es neue Tarife gibt, werden diese in die Datenbank importiert
      * @param  {Array} data
      */
     static async importTarife(data) {
         const tarife = data.map((value) => value.tarifname).filter((v, i, a) => a.indexOf(v) === i);
-        //const db = await database();
-        tarife.forEach((name) => {
-            console.log(name);
-            //const result = db.run("SELECT * FROM tarif wHERE name = ?", name);
-            //console.log(result);
-        });
+        const db = await database;
+        for (let i = 0; i < tarife.length; i++) {
+            const name = tarife[i];
+            const result = await db.get("SELECT * FROM tarif WHERE name = ?", name);
+            if (result === undefined) {
+                console.log("Inserting Tarif " + name);
+                await db.run("INSERT INTO tarif (name) VALUES (?)", name);
+            }
+        }
+        console.log(await db.all("SELECT * FROM tarif"));
     }
 
-    /**Lade data.csv und gebe die gelesenen Daten an die callbackfunktion weiter
+    /**
+     * Lese vorhandenen Postleitzahlen aus dem csv import
+     * Falls es neue Tarife gibt, werden diese in die Datenbank importiert
+     * @param  {Array} data
+     */
+    static async importPLZ(data) {
+        const plzs = data.map((value) => parseInt(value.plz)).filter((v, i, a) => a.indexOf(v) === i);
+        const db = await database;
+        for (let i = 0; i < plzs.length; i++) {
+            const plz = plzs[i];
+            const result = await db.get("SELECT * FROM plz WHERE plz = ?", plz);
+            if (result === undefined) {
+                console.log("Inserting PLZ " + plz);
+                await db.run("INSERT INTO plz (plz) VALUES (?)", plz);
+            }
+        }
+        console.log(await db.all("SELECT * FROM plz"));
+    }
+
+    /**
+     * Lade data.csv und gebe die gelesenen Daten an die callbackfunktion weiter
      * @param  {function} callback
      */
     static loadCSV(callback) {
-        //CSV parsen und in results ablegen
-        const results = [];
+        const csvData = [];
         fs.createReadStream('data.csv')
-            .pipe(csv({
-                mapHeaders: ({ header }) => header.toLowerCase(),
-                separator: ";"
-            }))
-            .on('data', (data) => results.push(data))
-            .on('end', () => {
-                callback(results);
+            .pipe(parse({
+                delimiter: ';',
+                cast: (value) => {
+                    const isInt = parseInt(value);
+                    if (!isNaN(isInt) && !value.search(",")){
+                        return isInt;
+                    }
+                    const isFloat = parseFloat(value.replace(",","."));
+                    if(!isNaN(isFloat)){
+                        return isFloat;
+                    }
+                    return value;
+                },
+                columns: (names) => names.map((name) => name.toLowerCase()) }))
+            .on('data', function (csvrow) {
+                //console.log(csvrow);
+                //do something with csvrow
+                csvData.push(csvrow);
+            })
+            .on('end', function () {
+                //do something with csvData
+                callback(csvData);
             });
     }
 }

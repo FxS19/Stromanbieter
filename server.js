@@ -8,7 +8,7 @@ const bodyParser = require("body-parser");
 const { request } = require("express");
 const app = express();
 
-const importer = require("./import");
+const importer =require("./import");
 importer.importData();
 
 const provideDatabase = require('./database');
