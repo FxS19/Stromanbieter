@@ -8,6 +8,9 @@ const bodyParser = require("body-parser");
 const { request } = require("express");
 const app = express();
 
+const importer =require("./import");
+//importer.importData();
+
 const provideDatabase = require('./database');
 const database = provideDatabase();
 
@@ -21,7 +24,6 @@ app.use(bodyParser.json())
 /*app.get("/", (request, response) => {
   response.sendFile(__dirname + "/views/index.html");
 });*/
-
 
 // listen for requests :)
 const listener = app.listen(8080, () => {
