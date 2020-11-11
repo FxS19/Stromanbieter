@@ -28,8 +28,8 @@ async function provideDatabase() {
           name STRING, 
           provision FLOAT)`);
           //done
-            await db.exec(`CREATE TABLE plz (
-          plz INTEGER PRIMARY KEY)`);
+          /*  await db.exec(`CREATE TABLE plz (
+          plz INTEGER PRIMARY KEY)`); Unnötig*/
           //done
             await db.exec(`CREATE TABLE tarif (
           tarif_id INTEGER PRIMARY KEY AUTOINCREMENT, 
@@ -37,7 +37,7 @@ async function provideDatabase() {
           datum DATETIME DEFAULT CURRENT_TIMESTAMP)`);
             await db.exec(`CREATE TABLE tarif_plz (
           tarif_plz_id INTEGER PRIMARY KEY AUTOINCREMENT, 
-          tarif_ID INTEGER, 
+          tarif_id INTEGER, 
           plz INTEGER, 
           fixkosten FLOAT, 
           variablekosten FLOAT, 

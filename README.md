@@ -1,11 +1,11 @@
 # Team
 Matrikelnummern
 * 6098168
-* --
+* 5959185
 * --
 
 # Beschreibung
-Das projekt besteht aus einem Webserver und einer website.
+Das projekt besteht aus einem Webserver und einer Website.
 
 ## Webserver
 Der Webserver ist in NodeJS geschrieben und läuft auf dem Port 8080.
