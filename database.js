@@ -19,10 +19,6 @@ async function provideDatabase() {
       if (!databaseExists) {
             //Tabellen erstellen
             //rm .data/* <--alle Dateien in .data löschen (reset)
-            await db.exec(`CREATE TABLE kunden (
-          k_id INTEGER PRIMARY KEY AUTOINCREMENT,
-          name STRING,
-          geburtsdatum DATE)`);
             await db.exec(`CREATE TABLE vergleichsportal (
           v_id INTEGER PRIMARY KEY AUTOINCREMENT, 
           name STRING, 
@@ -45,11 +41,14 @@ async function provideDatabase() {
             await db.exec(`CREATE TABLE bestellung (
           bestell_id INTEGER PRIMARY KEY AUTOINCREMENT, 
           tarif_plz_id INTEGER, 
-          k_id INTEGER, 
-          v_id INTEGER, 
-          strasse STRING, 
-          hausnummer INTEGER, 
-          beginn DATE, 
+          v_id INTEGER,
+          consumption INTEGER,
+          firstname STRING,
+          lastname STRING,
+          street STRING, 
+          streetnumber INTEGER, 
+          zipCode INTEGER,
+          city STRING
           bestell_datum DATETIME DEFAULT CURRENT_TIMESTAMP)`);
       }
       return db;
