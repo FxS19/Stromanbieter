@@ -48,8 +48,9 @@ async function provideDatabase() {
           street STRING, 
           streetnumber INTEGER, 
           zipCode INTEGER,
-          city STRING
-          bestell_datum DATETIME DEFAULT CURRENT_TIMESTAMP)`);
+          city STRING,
+          bestell_datum DATETIME DEFAULT CURRENT_TIMESTAMP,
+          aktiv BOOLEAN)`);
       }
       return db;
 }
