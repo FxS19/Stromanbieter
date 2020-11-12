@@ -24,6 +24,7 @@ class Importer {
         await Importer.importTarifnamen(data);
         await Importer.importTarife(data);
         //await Importer.importPLZ(data);
+      console.log("import done!");
     }
 
     /**
@@ -82,27 +83,27 @@ class Importer {
   * Falls es neue Tarife gibt, werden diese in die Datenbank importiert
   * @param  {Array} data
   */
-  static async importTarife(data){ 
+  static async importTarife(data){
+    let samectr = 0;
+    let modctr = 0;
+    let newctr = 0;
     const db = await database;
-    for (let i = 0; i < 1; /*data.length;*/ i++) {  
+    for (let i = 0; i < data.length; i++) {  
       const element = data[i];
       //gibt es den Tarif so genau schon
-      const res = await db.get(`SELECT tp.tarif_plz_id FROM tarif_plz tp, tarif t
+      const result1 = await db.get(`SELECT tp.tarif_plz_id FROM tarif_plz tp, tarif t
                                 WHERE tp.plz = ?
                                 AND t.tarif_id = tp.tarif_id
                                 AND t.name = ?
                                 AND tp.aktiv = TRUE;`
                                , element.plz, element.tarifname);
-
-      console.log("1. Select:");
-      console.log(res);
-      if (res === undefined){
+      if (result1 === undefined){
         //console.log("IS UNDEFINED");
         await db.run(`INSERT INTO tarif_plz (tarif_id,plz,fixkosten,variablekosten,aktiv)
                       SELECT tarif_id ,?,?,?,TRUE
                       FROM tarif where name =?`
                      ,element.plz,element.fixkosten,element.variablekosten,element.tarifname);
-        console.log("Insert");   
+        newctr++; 
       } else {
         //console.log("IS DEFINED, 2. Select:");
         const res = await db.get(`SELECT tp.tarif_plz_id FROM tarif_plz tp, tarif t
@@ -126,13 +127,13 @@ class Importer {
           await db.run(`INSERT INTO tarif_plz (tarif_id,plz,fixkosten,variablekosten,aktiv)
                         VALUES ((SELECT tarif_id FROM tarif where name =?),?,?,?,TRUE)`
                        ,element.tarifname,element.plz,element.fixkosten,element.variablekosten);
+          modctr++;
         } else {
-          console.log("Nix passiert, da Daten gleich.");
-          console.log(await db.all("SELECT * FROM tarif_plz WHERE tarif_id = 1"));    
+          samectr++;
         }
       }
     }
-
+    console.log(`New: ${newctr}\nModified: ${modctr}\nSame: ${samectr}`);
   }
   /* 
   Tarif_id = 1 und PLZ= 74564 da?

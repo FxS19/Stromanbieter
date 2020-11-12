@@ -9,7 +9,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git@ssh.dev.azure.com:v3/felixschmidt1/Web-Programmierung%20Stromanbieter%20vergleich/Web-Programmierung%20Stromanbieter%20vergleich"
+    "url": "git@github.com:FxS19/Stromanbieter.git"
   },
   "keywords": [
     "preisvergleich"
@@ -21,7 +21,7 @@
     "csv-parse": "^4.14.0",
     "express": "^4.17.1",
     "node-gyp": "^7.1.2",
-    "node-pre-gyp": "^0.15.0",
+    "node-pre-gyp": "^0.16.0",
     "sqlite": "^4.0.15",
     "sqlite3": "^5.0.0"
   }
