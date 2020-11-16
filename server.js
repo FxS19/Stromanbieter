@@ -7,6 +7,7 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const { request } = require("express");
 const app = express();
+const fs = require('fs');
 
 const importer = require("./import");
 importer.importData();
@@ -21,20 +22,19 @@ app.use(express.static("public"));
 
 app.use(bodyParser.json())
 
-// https://expressjs.com/en/starter/basic-routing.html
-app.get("/", (request, response) => {
-  response.sendFile(__dirname + "/views/index.html");
-});
-
 /**
  * Schnittstelle für /rates
+ * input:
+ * zipCode, consumption
+ * 
+ * output:
+ * [{id, title, zipCode, pricePerUnit, basicPrice, consumption, calculatedPricePerYear}, ...]
  */
 app.get("/rates", async (request, response) => {
-  console.log("/rates");
   const zipIsValide = /^\d{5}$/.test(request.query.zipCode); //5-Stellige PLZ
   const consumptionIsValide = /^\d+([\.,]\d+)?$/.test(request.query.consumption);//int oder fkz[,.]
   const zip = parseInt(request.query.zipCode);
-  const consumption = parseFloat(request.query.consumption.replace(",", "."));
+  const consumption = parseFloat(request.query.consumption ?? "".replace(",", "."));
   if (zipIsValide && consumptionIsValide && !isNaN(consumption)) {
     const db = await database;
     const tarife = await db.all("SELECT tp.tarif_plz_id, t.name, tp.fixkosten, tp.variablekosten FROM tarif t, tarif_plz tp WHERE t.tarif_id = tp.tarif_id and plz = ?", zip);
@@ -145,7 +145,32 @@ app.post("/orders", async (request, response) => {
 /*
 
 */
-/********/
+
+// Alle anderen Pfade auf /views umleiten, damit HTML Websiten möglich sind.
+// Es müssen alle speziellen Handler vor diesem Punkt definiert werden, alles unterhalb wird ignoriert
+// Die Struktur entspricht dabei dem weglassen von /views
+// Bsp.: Anfrage /index.html Antwort: ./views/index.html
+// Rückgabe von 404 wenn nicht vorhanden
+// https://expressjs.com/en/starter/basic-routing.html
+app.get("/:path*", (request, response) => {
+  console.log(request.path);
+  if(fs.existsSync(__dirname + "/views" + request.path)){
+  response.sendFile(__dirname + "/views" + request.path);
+  }else{
+    response.status(404).send("404 Not Found");
+  }
+});
+// https://expressjs.com/en/starter/basic-routing.html
+app.get("*:path/", (request, response) => {
+  console.log(request.path);
+  if(fs.existsSync(__dirname + "/views" + request.path + "/index.html"))
+  {
+    response.sendFile(__dirname + "/views" + request.path + "/index.html");
+  }else{
+    response.status(404).send("404 Not Found");
+  }
+});
+
 // listen for requests :)
 const listener = app.listen(8080, () => {
   console.log("Your app is listening on port " + listener.address().port);
