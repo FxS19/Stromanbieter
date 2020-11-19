@@ -138,6 +138,7 @@ app.post("/orders", async (request, response) => {
 
 /**
  * /orders/ um Bestellungen anzusehen?
+ * localhost:8080/orders/2?zipCode=74564&firstName=Irma3&lastName=Miller4
  */
 app.get("/orders/:id", async (request, response) => {
   const id = parseInt(request.params.id);
@@ -173,6 +174,7 @@ app.get("/orders/:id", async (request, response) => {
 });
 /**
 * /orders/ um Bestellungen zu Stornieren?
+* localhost:8080/orders/2?zipCode=74564&firstName=Irma3&lastName=Miller4
 */
 app.delete("/orders/:id", async (request, response) => {
 
