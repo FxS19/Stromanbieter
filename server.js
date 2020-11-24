@@ -5,7 +5,7 @@
 // but feel free to use whatever libraries or frameworks you'd like through `package.json`.
 const express = require("express");
 const bodyParser = require("body-parser");
-const { request } = require("express");
+const { request, response } = require("express");
 const app = express();
 const fs = require('fs');
 
@@ -145,6 +145,17 @@ app.post("/orders", async (request, response) => {
 /*
 
 */
+/**
+ * 
+ */
+app.post("/update", async (request, response) => {
+  importer.importData(path = request.body.path ?? undefined, callback = (error = false) => {
+    if (error)
+      response.status(500).send("Server error");
+    else 
+      response.send("DONE");
+  });
+});
 
 // Alle anderen Pfade auf /views umleiten, damit HTML Websiten möglich sind.
 // Es müssen alle speziellen Handler vor diesem Punkt definiert werden, alles unterhalb wird ignoriert

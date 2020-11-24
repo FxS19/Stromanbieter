@@ -11,17 +11,28 @@ class Importer {
     /**
      * Einstiegsfunktion zum einlesen der csv und updaten der Datenbank
      */
-    static importData() {
-      if (fs.existsSync("./data.csv")){
+    static importData(path = "./data.csv", callback = (error)=>{if (error) console.log("Nothing to update")}) {
+      if (fs.existsSync(path)){
         const startTime = new Date();
+        try {
           this.loadCSV(async (data) => {
-            await Importer.importTarifnamen(data);
-            await Importer.importTarife(data);
-            const seconds = Math.round((new Date() - startTime)/100)/10;
-            console.info(`import done after ${seconds} seconds`);
-            fs.renameSync("./data.csv", "./data.old");
-          });
-      }
+            try {
+              await Importer.importTarifnamen(data);
+              await Importer.importTarife(data);
+              const seconds = Math.round((new Date() - startTime)/100)/10;
+              console.info(`import done after ${seconds} seconds`);
+              fs.renameSync(path, "./data.old");
+              callback();
+            } catch (error) {
+              callback(true);
+            }
+          }, path);
+        } catch (error) {
+          callback(true);
+        }
+      }else{
+        callback(true)
+      };
     }
 
     /**
@@ -46,33 +57,40 @@ class Importer {
     /**
      * Lade data.csv und gebe die gelesenen Daten an die callbackfunktion weiter
      * @param  {function} callback
+     * @param {String} path
      */
-    static loadCSV(callback) {
+    static loadCSV(callback, path) {
         const csvData = [];
-        fs.createReadStream('data.csv') 
-            .pipe(parse({
-                delimiter: ';',
-                cast: (value) => {
-                    const isInt = parseInt(value);
-                    if (!isNaN(isInt) && !value.search(",")){
-                        return isInt;
-                    }
-                    const isFloat = parseFloat(value.replace(",","."));
-                    if(!isNaN(isFloat)){
-                        return isFloat;
-                    }
-                    return value;
-                },
-                columns: (names) => names.map((name) => name.toLowerCase()) }))
-            .on('data', function (csvrow) {
-                //console.log(csvrow);
-                //do something with csvrow
-                csvData.push(csvrow);
-            })
-            .on('end', function () {
-                //do something with csvData
-                callback(csvData);
-            });
+        fs.createReadStream(path) 
+          .pipe(parse({
+            delimiter: ';',
+            cast: (value) => {
+              const isInt = parseInt(value);
+              if (!isNaN(isInt) && !value.search(",")){
+                  return isInt;
+              }
+              const isFloat = parseFloat(value.replace(",","."));
+              if(!isNaN(isFloat)){
+                  return isFloat;
+              }
+              return value;
+            },
+            columns: (names) => names.map((name) => name.toLowerCase()) })
+          )
+          .on('data', function (csvrow) {
+            //console.log(csvrow);
+            //do something with csvrow
+            csvData.push(csvrow);
+          })
+          .on('end', function () {
+            //do something with csvData
+            callback(csvData);
+          })
+          .on('error', (error) => {
+            
+            console.warn(error);
+            callback(true);
+          });
     }
   
   /**
