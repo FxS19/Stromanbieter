@@ -30,6 +30,7 @@ async function provideDatabase() {
     await db.exec(`CREATE TABLE tarif (
       tarif_id INTEGER PRIMARY KEY AUTOINCREMENT, 
       name VARCHAR)`);
+      
     await db.exec(`CREATE TABLE tarif_plz (
       tarif_plz_id INTEGER PRIMARY KEY AUTOINCREMENT,
       tarif_id INTEGER KEY, 
@@ -39,6 +40,7 @@ async function provideDatabase() {
       aktiv BOOLEAN DEFAULT TRUE,
       datum DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY(tarif_id) REFERENCES tarif(tarif_id))`);
+
     await db.exec(`CREATE TABLE bestellung (
       bestell_id INTEGER PRIMARY KEY AUTOINCREMENT, 
       tarif_plz_id INTEGER, 

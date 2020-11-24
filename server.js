@@ -135,13 +135,75 @@ app.post("/orders", async (request, response) => {
     response.status(404).send({ error: "bad values" });
   }
 });
-/**
- * /orders/ um Bestellungen anzusehen?
- */
 
 /**
+ * /orders/ um Bestellungen anzusehen?
+ * localhost:8080/orders/2?zipCode=74564&firstName=Irma3&lastName=Miller4
+ */
+app.get("/orders/:id", async (request, response) => {
+  const id = parseInt(request.params.id);
+  const zip = parseInt(request.query.zipCode);
+  const db = await database;
+  const bestellung = await db.get(`SELECT * FROM bestellung 
+    WHERE bestell_id = ?
+    AND firstname = ?
+    AND lastname = ?
+    AND zipCode = ?`,
+    id, //aus URL
+    request.query.firstName, //Bestellung
+    request.query.lastName, // Bestellung
+    zip); //Bestellung
+  const tarif = await db.get(`SELECT * FROM tarif t, tarif_plz tp where t.tarif_id = tp.tarif_id and tp.tarif_plz_id =?`, bestellung.tarif_plz_id);
+  if (bestellung == null && tarif == null) {
+    response.status(404).send({ error: "Bestellung not found" });
+  } else {
+    response.status(200).send({
+      //Response soll eine Bestellnummer (id), seinen jährlichen Strompreis in EUR (calculatedPricePerYear) enthalten,
+      "id": bestellung.bestell_id,
+      "tarif": tarif.name,
+      "calculatedPricePerYear": Math.round(((tarif.fixkosten + tarif.variablekosten * bestellung.consumption) + Number.EPSILON) * 100) / 100,
+      "aktiv": bestellung.aktiv,
+      "bestellDatum": bestellung.bestell_datum,
+      "firstName": bestellung.firstname,
+      "lastName": bestellung.lastName,
+      "street": bestellung.street,
+      "streetnumber": bestellung.streetnumber,
+      "zipCode": bestellung.zipCode
+    });
+  }
+});
+/**
 * /orders/ um Bestellungen zu Stornieren?
+* localhost:8080/orders/2?zipCode=74564&firstName=Irma3&lastName=Miller4
 */
+app.delete("/orders/:id", async (request, response) => {
+
+  const id = parseInt(request.params.id);
+  const zip = parseInt(request.query.zipCode);
+  const db = await database;
+
+  const bestellung = await db.get(`SELECT * FROM bestellung 
+    WHERE bestell_id = ?
+    AND firstname = ?
+    AND lastname = ?
+    AND zipCode = ?`,
+    id, //aus URL
+    request.query.firstName, //Bestellung
+    request.query.lastName, // Bestellung
+    zip); //Bestellung
+  if (bestellung == null) {
+    response.status(404).send({ error: "Bestellung not found" });
+  } else {
+    const storno = await db.all(`SELECT * FROM bestellung WHERE bestell_datum >= date('now','-14 days') AND bestell_id = ?`, id);
+    if (storno == 0) {
+      response.status(404).send({ error: "Bestellung nicht mehr möglich zu stornieren" });
+    } else {
+      await db.run("Update bestellung SET aktiv= FALSE WHERE bestell_id = ?", id);
+      response.status(201).send("Bestellung wurde storniert.");
+    }
+  }
+});
+
 /*
 
 */
@@ -165,19 +227,18 @@ app.post("/update", async (request, response) => {
 // https://expressjs.com/en/starter/basic-routing.html
 app.get("/:path*", (request, response) => {
   console.log(request.path);
-  if(fs.existsSync(__dirname + "/views" + request.path)){
-  response.sendFile(__dirname + "/views" + request.path);
-  }else{
+  if (fs.existsSync(__dirname + "/views" + request.path)) {
+    response.sendFile(__dirname + "/views" + request.path);
+  } else {
     response.status(404).send("404 Not Found");
   }
 });
 // https://expressjs.com/en/starter/basic-routing.html
 app.get("*:path/", (request, response) => {
   console.log(request.path);
-  if(fs.existsSync(__dirname + "/views" + request.path + "/index.html"))
-  {
+  if (fs.existsSync(__dirname + "/views" + request.path + "/index.html")) {
     response.sendFile(__dirname + "/views" + request.path + "/index.html");
-  }else{
+  } else {
     response.status(404).send("404 Not Found");
   }
 });
