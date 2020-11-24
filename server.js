@@ -242,7 +242,14 @@ app.get("*:path/", (request, response) => {
     response.status(404).send("404 Not Found");
   }
 });
-
+app.get("/", (request, response) => {
+  console.log(request.path);
+  if (fs.existsSync(__dirname + "/views/index.html")) {
+    response.sendFile(__dirname + "/views/index.html");
+  } else {
+    response.status(404).send("404 Not Found");
+  }
+});
 // listen for requests :)
 const listener = app.listen(8080, () => {
   console.log("Your app is listening on port " + listener.address().port);
