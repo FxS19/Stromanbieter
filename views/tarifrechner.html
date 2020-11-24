@@ -24,22 +24,46 @@
                             const tarife = JSON.parse(text);
                             console.log(tarife);
                             if (tarife.length > 0) {
+                                function createHeadding(name) {
+                                    const h = document.createElement("th");
+                                    h.innerText = name;
+                                    return h;
+                                }
                                 document.getElementById("output").innerHTML = "";
-                                tarife.forEach(element => {
-                                    console.log(element);
-                                    let myDiv = document.createElement("div");
-                                    myDiv.classList.add("listitem");
-                                    myDiv.innerText = `Name: ${element.title}\nFixkosten: ${element.basicPrice}€\nkW/h Preis: ${Math.floor(element.pricePerUnit*10000)/100}ct\nKosten pro Jahr: ${element.calculatedPricePerYear}€`;
-                                    myDiv.appendChild(document.createElement("hr"));
-                                    document.getElementById("output").appendChild(myDiv);
-                                });
+                                const table = document.createElement("table");
+                                const headding = document.createElement("tr");
+                                headding.appendChild(createHeadding("Name"));
+                                headding.appendChild(createHeadding("Jahrespreis"));
+                                headding.appendChild(createHeadding("Fixkosten"));
+                                headding.appendChild(createHeadding("Preis kW/h"));
+                                table.appendChild(headding);
+                                tarife.forEach(element => table.appendChild(createItem(element)));
+                                document.getElementById("output").appendChild(table);
                             } else {
                                 document.getElementById("output").innerText = "Keine Daten für die eingegebe PLZ";
                             }
                         } else {
-                            console.warn("Server Error")
+                            document.getElementById("output").innerText = "Keine Informationen für die eingegeben Daten vorhanden";
                         }
                     });
+                }
+                /**
+                 * Erstelle einen Eintrag für einen Tarif und gebe ihn zurück.
+                 * @param {Object} element 
+                 * @return {Node}
+                */
+                function createItem(element){
+                    function createTd(value) {
+                        const td = document.createElement("td");
+                        td.innerText= value;
+                        return td;
+                    }
+                    let tr = document.createElement("tr");
+                    tr.appendChild(createTd(element.title));
+                    tr.appendChild(createTd(element.calculatedPricePerYear + " €"));
+                    tr.appendChild(createTd(element.basicPrice + " €"));
+                    tr.appendChild(createTd(Math.floor(element.pricePerUnit*10000)/100 + " ct"));
+                    return tr;
                 }
             </script>
             <label for="plz">PLZ:</label>
