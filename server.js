@@ -207,8 +207,10 @@ app.delete("/orders/:id", async (request, response) => {
 /*
 
 */
+
 /**
- * 
+ * /update Schnittstelle
+ * body Parameter "path" gibt den Pfad zur import Datei an
  */
 app.post("/update", async (request, response) => {
   importer.importData(path = request.body.path ?? undefined, callback = (error = false) => {
@@ -224,7 +226,6 @@ app.post("/update", async (request, response) => {
 // Die Struktur entspricht dabei dem weglassen von /views
 // Bsp.: Anfrage /index.html Antwort: ./views/index.html
 // Rückgabe von 404 wenn nicht vorhanden
-// https://expressjs.com/en/starter/basic-routing.html
 app.get("/:path*", (request, response) => {
   console.log(request.path);
   if (fs.existsSync(__dirname + "/views" + request.path)) {
@@ -233,7 +234,6 @@ app.get("/:path*", (request, response) => {
     response.status(404).send("404 Not Found");
   }
 });
-// https://expressjs.com/en/starter/basic-routing.html
 app.get("*:path/", (request, response) => {
   console.log(request.path);
   if (fs.existsSync(__dirname + "/views" + request.path + "/index.html")) {

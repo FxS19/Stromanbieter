@@ -1,0 +1,60 @@
+<Html>
+
+<head>
+    <script>
+        function httpGetAsync(theUrl, callback) {
+            var xmlHttp = new XMLHttpRequest();
+            xmlHttp.onreadystatechange = function () {
+                if (xmlHttp.readyState == 4 && xmlHttp.status == 200)
+                    callback(xmlHttp.responseText, xmlHttp.status);
+            }
+            xmlHttp.open("GET", theUrl, true); // true for asynchronous 
+            xmlHttp.send(null);
+        }
+    </script>
+</head>
+
+<body>
+    <div id="tarifrechner">
+        <section id="input">
+            <script>
+                function doRequest(plz, consumption) {
+                    httpGetAsync(`/rates?zipCode=${plz}&consumption=${consumption}`, (text, status) => {
+                        if (status == 200) {
+                            const tarife = JSON.parse(text);
+                            console.log(tarife);
+                            if (tarife.length > 0) {
+                                document.getElementById("output").innerHTML = "";
+                                tarife.forEach(element => {
+                                    console.log(element);
+                                    let myDiv = document.createElement("div");
+                                    myDiv.classList.add("listitem");
+                                    myDiv.innerText = `Name: ${element.title}\nFixkosten: ${element.basicPrice}€\nkW/h Preis: ${Math.floor(element.pricePerUnit*10000)/100}ct\nKosten pro Jahr: ${element.calculatedPricePerYear}€`;
+                                    myDiv.appendChild(document.createElement("hr"));
+                                    document.getElementById("output").appendChild(myDiv);
+                                });
+                            } else {
+                                document.getElementById("output").innerText = "Keine Daten für die eingegebe PLZ";
+                            }
+                        } else {
+                            console.warn("Server Error")
+                        }
+                    });
+                }
+            </script>
+            <label for="plz">PLZ:</label>
+            <input type="number" name="plz" id="plz">
+
+            <label for="consumption">Verbrauch pro Jahr:</label>
+            <input type="number" name="consumption" id="consumption">
+            <button
+                onclick="doRequest(document.getElementById('plz').value, document.getElementById('consumption').value)">Jetzt
+                berechnen</button>
+        </section>
+        <section id="output">
+
+        </section>
+    </div>
+</body>
+
+</Html>
