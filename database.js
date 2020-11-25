@@ -7,6 +7,12 @@ const fs = require('fs');
  */
 module.exports = function provideDatabase() {
   const databaseExists = fs.existsSync('./.data/database.db');
+  /**
+   * Benutzen von Better-sqlite3
+   * Bietet eine einheitlichere Schnittstelle zu JS.
+   * zudem ist Vorkompilieren von Querries möglich, sowie das schreiben von aggregaten.
+   * Mehr Informationen unter: https://github.com/JoshuaWise/better-sqlite3/blob/HEAD/docs/api.md
+  */
   const db = require('better-sqlite3')('./.data/database.db'/*, { verbose: console.log }*/);
 
   if (!databaseExists) {
