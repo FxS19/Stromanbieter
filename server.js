@@ -13,8 +13,8 @@ const importer = require("./import");
 importer.importData();
 
 const provideDatabase = require('./database');
-const parse = require("csv-parse");
-const database = provideDatabase();
+const db = provideDatabase();
+
 
 // make all the files in 'public' available
 // https://expressjs.com/en/starter/static-files.html
@@ -30,14 +30,13 @@ app.use(bodyParser.json())
  * output:
  * [{id, title, zipCode, pricePerUnit, basicPrice, consumption, calculatedPricePerYear}, ...]
  */
-app.get("/rates", async (request, response) => {
+app.get("/rates", (request, response) => {
   const zipIsValide = /^\d{5}$/.test(request.query.zipCode); //5-Stellige PLZ
   const consumptionIsValide = /^\d+([\.,]\d+)?$/.test(request.query.consumption);//int oder fkz[,.]
   const zip = parseInt(request.query.zipCode);
   const consumption = parseFloat(request.query.consumption ?? "".replace(",", "."));
   if (zipIsValide && consumptionIsValide && !isNaN(consumption)) {
-    const db = await database;
-    const tarife = await db.all("SELECT tp.tarif_plz_id, t.name, tp.fixkosten, tp.variablekosten FROM tarif t, tarif_plz tp WHERE t.tarif_id = tp.tarif_id and plz = ?", zip);
+    const tarife = db.prepare("SELECT tp.tarif_plz_id, t.name, tp.fixkosten, tp.variablekosten FROM tarif t, tarif_plz tp WHERE t.tarif_id = tp.tarif_id and plz = ?").all(zip);
     let calc = tarife.map((tarif) => {
       return {
         "id": tarif.tarif_plz_id,
@@ -64,16 +63,14 @@ app.get("/rates", async (request, response) => {
 /**
  * /orders um Bestellungen anzulegen
  */
-app.post("/orders", async (request, response) => {
-  const db = await database;
-
+app.post("/orders", (request, response) => {
   //Prüfung für Valide Werte
   function valideString(input) {
     return typeof (input) == "string" && input != "";
   };
   const zipIsValide = /^\d{5}$/.test(request.body.zipCode); //5-Stellige PLZ
   const consumptionIsValide = /^\d+([\.,]\d+)?$/.test(request.body.consumption);//int oder fkz[,.]
-  const rateIdIsValide = /^[0-9]$/.test(request.body.rateId) && await db.get("SELECT * FROM tarif_plz WHERE tarif_plz_id =?", request.body.rateId);//:)
+  const rateIdIsValide = /^[0-9]$/.test(request.body.rateId) && db.prepare("SELECT * FROM tarif_plz WHERE tarif_plz_id =?").get(request.body.rateId);//:)
   const streetIsValide = valideString(request.body.street);
   const cityIsValide = valideString(request.body.city);
   const firstNameValide = valideString(request.body.firstName);
@@ -82,14 +79,14 @@ app.post("/orders", async (request, response) => {
 
 
   if (zipIsValide && consumptionIsValide && rateIdIsValide && streetIsValide && cityIsValide && firstNameValide && lastNameValide && streetNumber) {
-    const result1 = await db.get("SELECT V_ID FROM vergleichsportal WHERE name =?", request.body.agent);
+    const result1 = db.prepare("SELECT V_ID FROM vergleichsportal WHERE name =?").get(request.body.agent);
     if (result1 === undefined) {
-      const create_agent = await db.run(
-        "INSERT INTO vergleichsportal (name) VALUES (?)", request.body.agent);
+      db.prepare("INSERT INTO vergleichsportal (name) VALUES (?)").run(request.body.agent);
     };
-    const create_order = await db.run(
+    db.prepare(
       `INSERT INTO bestellung (tarif_plz_id,v_id,consumption,firstname,lastname,street,streetNumber,zipCode,city,aktiv) 
-    VALUES (?,(SELECT v_id FROM vergleichsportal WHERE name=?),?,?,?,?,?,?,?,TRUE)`,
+      VALUES (?,(SELECT v_id FROM vergleichsportal WHERE name=?),?,?,?,?,?,?,?,TRUE)`)
+      .run(
       request.body.rateId, // Bestellung - Tarif_PLZ_ID
       request.body.agent, //Vergleichsportal
       request.body.consumption,//Bestellung);
@@ -101,7 +98,7 @@ app.post("/orders", async (request, response) => {
       request.body.city); //Bestellung - Stadt
 
     //Return Select Bestellung Info
-    const bestellung = await db.get(`SELECT * FROM bestellung 
+    const bestellung = db.prepare(`SELECT * FROM bestellung 
     WHERE tarif_plz_id = ?
     AND v_id = (SELECT v_id FROM vergleichsportal WHERE name = ?)
     AND consumption = ?
@@ -111,7 +108,7 @@ app.post("/orders", async (request, response) => {
     AND streetNumber = ?
     AND zipCode = ?
     AND city = ?
-    ORDER BY bestell_datum DESC`,
+    ORDER BY bestell_datum DESC`).get(
       request.body.rateId, // Bestellung - Tarif_PLZ_ID
       request.body.agent, //Vergleichsportal
       request.body.consumption,//Bestellung);
@@ -122,7 +119,7 @@ app.post("/orders", async (request, response) => {
       request.body.zipCode, // Bestellung
       request.body.city); //Bestellung - Stadt
     //Return Select Tarif Info
-    const tarif = await db.get(`SELECT * FROM tarif_plz WHERE tarif_plz_id =?`, request.body.rateId);
+    const tarif = db.prepare(`SELECT * FROM tarif_plz WHERE tarif_plz_id =?`).get(request.body.rateId);
     //Return Statement
     response.status(201).send({
       //Response soll eine Bestellnummer (id), seinen jährlichen Strompreis in EUR (calculatedPricePerYear) enthalten,
@@ -130,7 +127,7 @@ app.post("/orders", async (request, response) => {
       "calculatedPricePerYear": Math.round(((tarif.fixkosten + tarif.variablekosten * bestellung.consumption) + Number.EPSILON) * 100) / 100
     });
 
-    console.log(await db.get(`SELECT * FROM bestellung where bestell_id=?`, bestellung.bestell_id));
+    console.log(db.prepare(`SELECT * FROM bestellung where bestell_id=?`).get(bestellung.bestell_id));
   } else {
     response.status(404).send({ error: "bad values" });
   }
@@ -140,20 +137,20 @@ app.post("/orders", async (request, response) => {
  * /orders/ um Bestellungen anzusehen?
  * localhost:8080/orders/2?zipCode=74564&firstName=Irma3&lastName=Miller4
  */
-app.get("/orders/:id", async (request, response) => {
+app.get("/orders/:id", (request, response) => {
   const id = parseInt(request.params.id);
   const zip = parseInt(request.query.zipCode);
-  const db = await database;
-  const bestellung = await db.get(`SELECT * FROM bestellung 
+  const bestellung = db.prepare(`SELECT * FROM bestellung 
     WHERE bestell_id = ?
     AND firstname = ?
     AND lastname = ?
-    AND zipCode = ?`,
+    AND zipCode = ?`).get(
     id, //aus URL
     request.query.firstName, //Bestellung
     request.query.lastName, // Bestellung
     zip); //Bestellung
-  const tarif = await db.get(`SELECT * FROM tarif t, tarif_plz tp where t.tarif_id = tp.tarif_id and tp.tarif_plz_id =?`, bestellung.tarif_plz_id);
+    console.log(bestellung);
+  const tarif = db.prepare(`SELECT * FROM tarif t, tarif_plz tp where t.tarif_id = tp.tarif_id and tp.tarif_plz_id =?`).get(bestellung.tarif_plz_id);
   if (bestellung == null && tarif == null) {
     response.status(404).send({ error: "Bestellung not found" });
   } else {
@@ -176,17 +173,16 @@ app.get("/orders/:id", async (request, response) => {
 * /orders/ um Bestellungen zu Stornieren?
 * localhost:8080/orders/2?zipCode=74564&firstName=Irma3&lastName=Miller4
 */
-app.delete("/orders/:id", async (request, response) => {
+app.delete("/orders/:id", (request, response) => {
 
   const id = parseInt(request.params.id);
   const zip = parseInt(request.query.zipCode);
-  const db = await database;
 
-  const bestellung = await db.get(`SELECT * FROM bestellung 
+  const bestellung = db.prepare(`SELECT * FROM bestellung 
     WHERE bestell_id = ?
     AND firstname = ?
     AND lastname = ?
-    AND zipCode = ?`,
+    AND zipCode = ?`).get(
     id, //aus URL
     request.query.firstName, //Bestellung
     request.query.lastName, // Bestellung
@@ -194,11 +190,11 @@ app.delete("/orders/:id", async (request, response) => {
   if (bestellung == null) {
     response.status(404).send({ error: "Bestellung not found" });
   } else {
-    const storno = await db.all(`SELECT * FROM bestellung WHERE bestell_datum >= date('now','-14 days') AND bestell_id = ?`, id);
+    const storno = db.prepare(`SELECT * FROM bestellung WHERE bestell_datum >= date('now','-14 days') AND bestell_id = ?`).all(id);
     if (storno == 0) {
       response.status(404).send({ error: "Bestellung nicht mehr möglich zu stornieren" });
     } else {
-      await db.run("Update bestellung SET aktiv= FALSE WHERE bestell_id = ?", id);
+      db.prepare("Update bestellung SET aktiv= FALSE WHERE bestell_id = ?").run(id);
       response.status(201).send("Bestellung wurde storniert.");
     }
   }
@@ -212,7 +208,7 @@ app.delete("/orders/:id", async (request, response) => {
  * /update Schnittstelle
  * body Parameter "path" gibt den Pfad zur import Datei an
  */
-app.post("/update", async (request, response) => {
+app.post("/update", (request, response) => {
   importer.importData(path = request.body.path ?? undefined, callback = (error = false) => {
     if (error)
       response.status(500).send("Server error");
