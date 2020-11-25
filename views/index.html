@@ -1,20 +1,147 @@
-<!-- This is a static file -->
-<!-- served from your routes in server.js -->
-<!DOCTYPE html>
-<html lang="en">
+<!DOCTYPE HTML>
+<html lang="de">
   <head>
     <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="A cool thing made with Glitch">
-
-    <title>Welcome!</title>
+    <title>Startseite</title>
+    <meta name="description" content="Sonnenstrahl Energie AG">
+    <meta name="author" content="WWI19B">
+    <link rel="stylesheet" href="./etc/css/font.css">
+    <meta content="width=device-width, initial-scale=1" name="viewport" />
+    <link rel="stylesheet" href="./etc/css/navigation.css">
+    <link rel="stylesheet" href="./etc/css/body.css">
+    <link rel="stylesheet" href="./etc/css/footer.css">
+    <link rel="icon" type="image/vnd.microsoft.icon" href="./etc/img/logo.ico">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    
+    <script>
+      function httpGetAsync(theUrl, callback) {
+          var xmlHttp = new XMLHttpRequest();
+          xmlHttp.onreadystatechange = function () {
+              if (xmlHttp.readyState == 4 && xmlHttp.status == 200)
+                  callback(xmlHttp.responseText, xmlHttp.status);
+          }
+          xmlHttp.open("GET", theUrl, true); // true for asynchronous 
+          xmlHttp.send(null);
+      }
+  </script>
   </head>
-  <body>
-    <header>
-      <h1>A wish of the Future</h1>
-    </header>
 
+  <body>
     <main>
+      <!-- Navigation -->
+      <header>
+        <nav>
+          <div class="brand">
+          <!-- LOGO LINKS -->
+            <div class="logo">
+            <a class="nav_img" href="./index.html"><img class="nav_img" src="./etc/img/logo.png" alt="Logo" ></a>
+            </div>
+          </div>
+          <div class="menu">
+            <!-- Navigation Liste -->
+            <ul class="nav_ul">
+              <!-- INDEX -->
+              <li class="nav_li"><a class="nav_a" href="./index.html">Sonnenstrahl Energie AG</a></li>
+            </ul>
+          </div>
+        </nav>
+      </header>
+
+
+      <div id="hero-section">
+        <img src="./etc/img/stage.jpg" alt="Stade Bild: Photovoltaikanlage"></img>
+        <div class="content-breit">
+          
+          <!-- tarifrechner -->
+          <div id="tarifrechner">
+            <section id="input">
+                <script>
+                    function doRequest(plz, consumption) {
+                        httpGetAsync(`/rates?zipCode=${plz}&consumption=${consumption}`, (text, status) => {
+                            if (status == 200) {
+                                const tarife = JSON.parse(text);
+                                console.log(tarife);
+                                if (tarife.length > 0) {
+                                    function createHeadding(name) {
+                                        const h = document.createElement("th");
+                                        h.innerText = name;
+                                        return h;
+                                    }
+                                    document.getElementById("output").innerHTML = "";
+                                    const table = document.createElement("table");
+                                    const headding = document.createElement("tr");
+                                    headding.appendChild(createHeadding("Name"));
+                                    headding.appendChild(createHeadding("Jahrespreis"));
+                                    headding.appendChild(createHeadding("Fixkosten"));
+                                    headding.appendChild(createHeadding("Preis kW/h"));
+                                    table.appendChild(headding);
+                                    tarife.forEach(element => table.appendChild(createItem(element)));
+                                    document.getElementById("output").appendChild(table);
+                                } else {
+                                    document.getElementById("output").innerText = "Keine Daten für die eingegebe PLZ";
+                                }
+                            } else {
+                                document.getElementById("output").innerText = "Keine Informationen für die eingegeben Daten vorhanden";
+                            }
+                        });
+                    }
+                    /**
+                     * Erstelle einen Eintrag für einen Tarif und gebe ihn zurück.
+                     * @param {Object} element 
+                     * @return {Node}
+                    */
+                    function createItem(element){
+                        function createTd(value) {
+                            const td = document.createElement("td");
+                            td.innerText= value;
+                            return td;
+                        }
+                        let tr = document.createElement("tr");
+                        tr.appendChild(createTd(element.title));
+                        tr.appendChild(createTd(element.calculatedPricePerYear + " €"));
+                        tr.appendChild(createTd(element.basicPrice + " €"));
+                        tr.appendChild(createTd(Math.floor(element.pricePerUnit*10000)/100 + " ct"));
+                        return tr;
+                    }
+                </script>
+                <table>
+                  <tr>
+                    <td class="left"><label for="plz">PLZ:</label></td>
+                    <td><input type="number" name="plz" id="plz"></td>
+                  </tr>
+                  <tr>
+                    <td class="left"><label for="consumption">Verbrauch pro Jahr:</label></td>
+                    <td><input type="number" name="consumption" id="consumption"></td>
+                  </tr>
+                </table>
+                <button class="large green button" onclick="doRequest(document.getElementById('plz').value, document.getElementById('consumption').value)">Jetzt berechnen</button>
+            </section>
+            <section id="output">
+    
+            </section>
+          </div>
+          <div id="tarifrechner">
+            <h1>Irmas Historie</h1>
+          </div>
+        </div>
+      </div>
+    </main>
+
+
+    <footer>
+        <!-- Kontakt -->
+        <div id="Kontakt" class="footer-spalte">
+            <h5 class="h5_footer">Kontakt</h5>
+                <p class="p_footer">DHBW Heidenheim Projekt WWI19B</p>
+                <p class="p_footer">Ann-Kathrin Plapp, Felix Schmidt, Irma Miller</p>
+        </div>
+        <!-- Rechtliches -->
+            <div id="Rechtliches" class="footer-spalte">
+            <h5 class="h5_footer">Rechtliches</h5>
+        
+                <p class="p_footer"><a href="impressum.php">Impressum</a></p>
+                <p class="p_footer"><a href="datenschutz.php">Datenschutz</a></p>
+        </div>         
+    </footer>
   </body>
 </html>
