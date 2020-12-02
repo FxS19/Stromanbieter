@@ -22,10 +22,6 @@ module.exports = function provideDatabase() {
       v_id INTEGER PRIMARY KEY AUTOINCREMENT, 
       name STRING, 
       provision FLOAT)`);
-    //done
-    /*  await db.exec(`CREATE TABLE plz (
-    plz INTEGER PRIMARY KEY)`); Unnötig*/
-    //done
     db.exec(`CREATE TABLE tarif (
       tarif_id INTEGER PRIMARY KEY AUTOINCREMENT, 
       name VARCHAR)`);
@@ -39,7 +35,6 @@ module.exports = function provideDatabase() {
       aktiv BOOLEAN DEFAULT TRUE,
       datum DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY(tarif_id) REFERENCES tarif(tarif_id))`);
-
     db.exec(`CREATE TABLE bestellung (
       bestell_id INTEGER PRIMARY KEY AUTOINCREMENT, 
       tarif_plz_id INTEGER, 
