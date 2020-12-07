@@ -8,12 +8,13 @@ const bodyParser = require("body-parser");
 const { request, response } = require("express");
 const app = express();
 const fs = require('fs');
+const db = require("./databaseCache");
 
 const importer = require("./import");
 importer.importData();
 
 const provideDatabase = require('./database');
-const db = provideDatabase();
+
 
 
 // make all the files in 'public' available
@@ -36,7 +37,7 @@ app.get("/rates", (request, response) => {
   const zip = parseInt(request.query.zipCode);
   const consumption = parseFloat(request.query.consumption ?? "".replace(",", "."));
   if (zipIsValide && consumptionIsValide && !isNaN(consumption)) {
-    const tarife = db.prepare("SELECT tp.tarif_plz_id, t.name, tp.fixkosten, tp.variablekosten FROM tarif t, tarif_plz tp WHERE t.tarif_id = tp.tarif_id and plz = ?").all(zip);
+    const tarife = db("SELECT tp.tarif_plz_id, t.name, tp.fixkosten, tp.variablekosten FROM tarif t, tarif_plz tp WHERE t.tarif_id = tp.tarif_id and plz = ?").all(zip);
     let calc = tarife.map((tarif) => {
       return {
         "id": tarif.tarif_plz_id,
@@ -70,7 +71,7 @@ app.post("/orders", (request, response) => {
   };
   const zipIsValide = /^\d{5}$/.test(request.body.zipCode); //5-Stellige PLZ
   const consumptionIsValide = /^\d+([\.,]\d+)?$/.test(request.body.consumption);//int oder fkz[,.]
-  const rateIdIsValide = /^[0-9]$/.test(request.body.rateId) && db.prepare("SELECT * FROM tarif_plz WHERE tarif_plz_id =?").get(request.body.rateId);//:)
+  const rateIdIsValide = /^[0-9]$/.test(request.body.rateId) && db("SELECT * FROM tarif_plz WHERE tarif_plz_id =?").get(request.body.rateId);//:)
   const streetIsValide = valideString(request.body.street);
   const cityIsValide = valideString(request.body.city);
   const firstNameValide = valideString(request.body.firstName);
@@ -79,11 +80,11 @@ app.post("/orders", (request, response) => {
 
 
   if (zipIsValide && consumptionIsValide && rateIdIsValide && streetIsValide && cityIsValide && firstNameValide && lastNameValide && streetNumber) {
-    const result1 = db.prepare("SELECT V_ID FROM vergleichsportal WHERE name =?").get(request.body.agent);
+    const result1 = db("SELECT V_ID FROM vergleichsportal WHERE name =?").get(request.body.agent);
     if (result1 === undefined) {
-      db.prepare("INSERT INTO vergleichsportal (name) VALUES (?)").run(request.body.agent);
+      db("INSERT INTO vergleichsportal (name) VALUES (?)").run(request.body.agent);
     };
-    db.prepare(
+    db(
       `INSERT INTO bestellung (tarif_plz_id,v_id,consumption,firstname,lastname,street,streetNumber,zipCode,city,aktiv) 
       VALUES (?,(SELECT v_id FROM vergleichsportal WHERE name=?),?,?,?,?,?,?,?,TRUE)`)
       .run(
@@ -98,7 +99,7 @@ app.post("/orders", (request, response) => {
       request.body.city); //Bestellung - Stadt
 
     //Return Select Bestellung Info
-    const bestellung = db.prepare(`SELECT * FROM bestellung 
+    const bestellung = db(`SELECT * FROM bestellung 
     WHERE tarif_plz_id = ?
     AND v_id = (SELECT v_id FROM vergleichsportal WHERE name = ?)
     AND consumption = ?
@@ -119,7 +120,7 @@ app.post("/orders", (request, response) => {
       request.body.zipCode, // Bestellung
       request.body.city); //Bestellung - Stadt
     //Return Select Tarif Info
-    const tarif = db.prepare(`SELECT * FROM tarif_plz WHERE tarif_plz_id =?`).get(request.body.rateId);
+    const tarif = db(`SELECT * FROM tarif_plz WHERE tarif_plz_id =?`).get(request.body.rateId);
     //Return Statement
     response.status(201).send({
       //Response soll eine Bestellnummer (id), seinen jährlichen Strompreis in EUR (calculatedPricePerYear) enthalten,
@@ -127,7 +128,7 @@ app.post("/orders", (request, response) => {
       "calculatedPricePerYear": Math.round(((tarif.fixkosten + tarif.variablekosten * bestellung.consumption) + Number.EPSILON) * 100) / 100
     });
 
-    console.log(db.prepare(`SELECT * FROM bestellung where bestell_id=?`).get(bestellung.bestell_id));
+    console.log(db(`SELECT * FROM bestellung where bestell_id=?`).get(bestellung.bestell_id));
   } else {
     response.status(404).send({ error: "bad values" });
   }
@@ -140,7 +141,7 @@ app.post("/orders", (request, response) => {
 app.get("/orders/:id", (request, response) => {
   const id = parseInt(request.params.id);
   const zip = parseInt(request.query.zipCode);
-  const bestellung = db.prepare(`SELECT * FROM bestellung 
+  const bestellung = db(`SELECT * FROM bestellung 
     WHERE bestell_id = ?
     AND firstname = ?
     AND lastname = ?
@@ -150,7 +151,7 @@ app.get("/orders/:id", (request, response) => {
     request.query.lastName, // Bestellung
     zip); //Bestellung
     console.log(bestellung);
-  const tarif = db.prepare(`SELECT * FROM tarif t, tarif_plz tp where t.tarif_id = tp.tarif_id and tp.tarif_plz_id =?`).get(bestellung.tarif_plz_id);
+  const tarif = db(`SELECT * FROM tarif t, tarif_plz tp where t.tarif_id = tp.tarif_id and tp.tarif_plz_id =?`).get(bestellung.tarif_plz_id);
   if (bestellung == null && tarif == null) {
     response.status(404).send({ error: "Bestellung not found" });
   } else {
@@ -178,7 +179,7 @@ app.delete("/orders/:id", (request, response) => {
   const id = parseInt(request.params.id);
   const zip = parseInt(request.query.zipCode);
 
-  const bestellung = db.prepare(`SELECT * FROM bestellung 
+  const bestellung = db(`SELECT * FROM bestellung 
     WHERE bestell_id = ?
     AND firstname = ?
     AND lastname = ?
@@ -190,11 +191,11 @@ app.delete("/orders/:id", (request, response) => {
   if (bestellung == null) {
     response.status(404).send({ error: "Bestellung not found" });
   } else {
-    const storno = db.prepare(`SELECT * FROM bestellung WHERE bestell_datum >= date('now','-14 days') AND bestell_id = ?`).all(id);
+    const storno = db(`SELECT * FROM bestellung WHERE bestell_datum >= date('now','-14 days') AND bestell_id = ?`).all(id);
     if (storno == 0) {
       response.status(404).send({ error: "Bestellung nicht mehr möglich zu stornieren" });
     } else {
-      db.prepare("Update bestellung SET aktiv= FALSE WHERE bestell_id = ?").run(id);
+      db("Update bestellung SET aktiv= FALSE WHERE bestell_id = ?").run(id);
       response.status(201).send("Bestellung wurde storniert.");
     }
   }
