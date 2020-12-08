@@ -4,8 +4,9 @@ const crypto = require("crypto");
   
 const statements= {};
 /**
-    Stelle ein Interface bereit, welches SQL-befehle automatisch vorde
-    @param sql String
+ *  Stelle eine Funktion bereit, welche SQL-Statements automatisch Kompiliert und diese bei erneutem Eintreten aus dem Speicher entnimmt.
+ *  Somit ist das Kompilieren nur einmal pro Serverstart notwendig.
+ *  @param sql String
  */
 module.exports = function (sql) {
     const hash = crypto

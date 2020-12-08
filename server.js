@@ -5,15 +5,12 @@
 // but feel free to use whatever libraries or frameworks you'd like through `package.json`.
 const express = require("express");
 const bodyParser = require("body-parser");
-const { request, response } = require("express");
 const app = express();
 const fs = require('fs');
 const db = require("./databaseCache");
 
 const importer = require("./import");
 importer.importData();
-
-const provideDatabase = require('./database');
 
 
 
@@ -24,8 +21,70 @@ app.use(express.static("public"));
 app.use(bodyParser.json())
 
 /**
+ * Gebe erinen Tarif nach id zurück
+ * http://localhost:8080/tarif/1
+ */
+app.get("/tarif/:id", (request, response)=> {
+  const id = parseInt(request.params.id);
+  if(id){
+    const tarif = db(`SELECT tp.tarif_plz_id, t.name, tp.fixkosten, tp.variablekosten, tp.aktiv, tp.plz 
+    FROM tarif t, tarif_plz tp 
+    WHERE t.tarif_id = tp.tarif_id AND tp.tarif_plz_id = ?`).get(id);
+    if (tarif){
+      response.send({
+        "id": tarif.tarif_plz_id,
+        "title": tarif.name,
+        "zipCode": tarif.plz,
+        "pricePerUnit": tarif.variablekosten,
+        "basicPrice": tarif.fixkosten,
+        "active": tarif.aktiv
+      });
+    }else{
+      response.status(404).send({error:"Not Found"})
+    }
+  }else{
+    response.status(400).send("Bad reqest");
+  }
+});
+
+/**
+ * Gebe alle früheren Versionen des Tarif zurück
+ * Betrachtet werden Preisänderungen, wenn der Tarif unter einem anderen Namen auftritt wird dies nicht beachtet
+ * localhost:8080/tarif/1/history
+ */
+app.get("/tarif/:id/history", (request, response)=>{
+  const id = parseInt(request.params.id);
+  if(id){
+    const tarif = db(`SELECT tp.tarif_id, tp.plz 
+    FROM tarif_plz tp 
+    WHERE tp.tarif_plz_id = ?`).get(id);
+    console.log(tarif);
+    if (tarif){
+      const alleTarife = db(`SELECT tp.tarif_plz_id, t.name, tp.fixkosten, tp.variablekosten, tp.aktiv, tp.plz, tp.datum
+      FROM tarif t, tarif_plz tp 
+      WHERE tp.tarif_id = t.tarif_id AND tp.plz = ? AND tp.tarif_id = ?`).all(tarif.plz, tarif.tarif_id);
+      response.send(alleTarife.map((e)=>{return {
+        "id": e.tarif_plz_id,
+        "title": e.name,
+        "zipCode": e.plz,
+        "pricePerUnit": e.variablekosten,
+        "basicPrice": e.fixkosten,
+        "active": e.aktiv,
+        "date": e.datum
+      }}));
+    }else{
+      response.status(404).send({error:"Not Found"})
+    }
+  }else{
+    response.status(400).send("Bad reqest");
+  }
+});
+
+
+
+/**
  * Schnittstelle für /rates
- * input:
+ * input.body:
  * zipCode, consumption
  * 
  * output:
@@ -247,7 +306,6 @@ app.get("/", (request, response) => {
     response.status(404).send("404 Not Found");
   }
 });
-// listen for requests :)
 const listener = app.listen(8080, () => {
   console.log("Your app is listening on port " + listener.address().port);
 });
