@@ -12,11 +12,10 @@ module.exports = function (sql) {
         .createHash("sha256")
         .update(sql)
         .digest("hex");
-    if (!statements[hash]){
+    return statements[hash] || (() => {
+        console.log('Preparing: '+ hash);
         const s = db.prepare(sql);
         statements[hash]= s;
         return s;
-    }else{
-        return statements[hash];
-    }
+    })();
 };
