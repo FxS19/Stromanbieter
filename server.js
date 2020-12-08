@@ -58,7 +58,6 @@ app.get("/tarif/:id/history", (request, response)=>{
     const tarif = db(`SELECT tp.tarif_id, tp.plz 
     FROM tarif_plz tp 
     WHERE tp.tarif_plz_id = ?`).get(id);
-    console.log(tarif);
     if (tarif){
       const alleTarife = db(`SELECT tp.tarif_plz_id, t.name, tp.fixkosten, tp.variablekosten, tp.aktiv, tp.plz, tp.datum
       FROM tarif t, tarif_plz tp 

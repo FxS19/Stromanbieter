@@ -10,21 +10,46 @@ const db = provideDatabase();
 class Importer {
     /**
      * Einstiegsfunktion zum einlesen der csv und updaten der Datenbank
+     * @param {String} path 
+     * @param {Function} callback 
      */
     static importData(path = "./data.csv", callback = (error)=>{if (error) console.log("Nothing to update")}) {
       if (fs.existsSync(path)){
-        const startTime = new Date();
+        try {
+          this.loadCSV(async (data) => this.import(data, callback), path);
+        } catch (error) {
+          callback(true);
+        }
+      }else{
+        callback(true)
+      };
+    }
+
+    /**
+     * Erstelle fake Werte in der Datenbank, welche auf der Struktur der angegebenen CSV aufbauen
+     * Beispiel: require("./import").importFakeValues(amount = 2, path = "./data.old")
+     * in die Debug Konsole eingeben um mindestens 2 Sätze an Fakedaten pro vorhandenem Tarif zu erstellen
+     * Achtung das Ausführen kann einige Zeit dauern.
+     * @param {Integer} amount Minimum pro Tarif, abhängig von der csv
+     * @param {String} path 
+     * @param {Function} callback 
+     */
+    static importFakeValues(amount = 1, path = "./data.csv", callback = (error)=>{if (error) console.log("Nothing to update")}){
+      console.log("Starting to insert fake values, only use for testing");
+      if (fs.existsSync(path)){
         try {
           this.loadCSV(async (data) => {
-            try {
-              await Importer.importTarifnamen(data);
-              await Importer.importTarife(data);
-              const seconds = Math.round((new Date() - startTime)/100)/10;
-              console.info(`import done after ${seconds} seconds`);
-              fs.renameSync(path, "./data.old");
-              callback();
-            } catch (error) {
-              callback(true);
+            console.log("CSV loaded");
+            for (let i=0; i<=amount; i++) {
+              console.log("Import set: " + i);
+              await this.import(data.map((e)=>{
+                return {
+                  tarifname: e.tarifname,
+                  plz: e.plz,
+                  fixkosten: Math.floor(Math.random()*10000)/10,
+                  variablekosten: Math.floor(Math.random()*1000)/1000
+                }
+              }), callback);
             }
           }, path);
         } catch (error) {
@@ -36,8 +61,27 @@ class Importer {
     }
 
     /**
+     * Neue Werte in die Datenbank einbinden
+     * @param {Array<Object>} data Liste an Werten mit folgendem Aufbau {tarifname, plz, fixkosten, variablekosten}
+     * @param {function} callback
+     */
+    static async import(data, callback){
+      try {
+        const startTime = new Date();
+        await Importer.importTarifnamen(data);
+        await Importer.importTarife(data);
+        const seconds = Math.round((new Date() - startTime)/100)/10;
+        console.info(`import done after ${seconds} seconds`);
+        fs.renameSync(path, "./data.old");
+        callback();
+      } catch (error) {
+        callback(true);
+      }
+    }
+
+    /**
      * Lese vorhandenen Tarife aus dem csv import
-     * Falls es neue Tarife gibt, werden diese in die Datenbank importiert
+     * Falls es neue Tarife gibt, werden diese in die Datenbank importier
      * @param  {Array} data
      */
     static async importTarifnamen(data) {
@@ -57,7 +101,7 @@ class Importer {
 
     /**
      * Lade data.csv und gebe die gelesenen Daten an die callbackfunktion weiter
-     * @param  {function} callback
+     * @param {function} callback
      * @param {String} path
      */
     static loadCSV(callback, path) {
