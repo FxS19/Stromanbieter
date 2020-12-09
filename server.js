@@ -259,10 +259,6 @@ app.delete("/orders/:id", (request, response) => {
   }
 });
 
-/*
-
-*/
-
 /**
  * /update Schnittstelle
  * body Parameter "path" gibt den Pfad zur import Datei an
@@ -276,11 +272,12 @@ app.post("/update", (request, response) => {
   });
 });
 
-// Alle anderen Pfade auf /views umleiten, damit HTML Websiten möglich sind.
-// Es müssen alle speziellen Handler vor diesem Punkt definiert werden, alles unterhalb wird ignoriert
-// Die Struktur entspricht dabei dem weglassen von /views
-// Bsp.: Anfrage /index.html Antwort: ./views/index.html
-// Rückgabe von 404 wenn nicht vorhanden
+/** Alle anderen Pfade auf /views umleiten, damit HTML Websiten möglich sind.
+ *  Es müssen alle speziellen Handler vor diesem Punkt definiert werden, alles unterhalb wird ignoriert
+ * Die Struktur entspricht dabei dem weglassen von /views
+ *  Bsp.: Anfrage /index.html Antwort: ./views/index.html
+ *  Rückgabe von 404 wenn nicht vorhanden
+*/
 app.get("/:path*", (request, response) => {
   console.log(request.path);
   if (fs.existsSync(__dirname + "/views" + request.path)) {
