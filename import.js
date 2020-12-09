@@ -7,6 +7,10 @@ const fs = require('fs');
 const provideDatabase = require('./database');
 const db = provideDatabase();
 
+/**
+ * Klasse zum Importieren von Daten aus einer CSV
+ * Alle Member sind static
+ */
 class Importer {
     /**
      * Einstiegsfunktion zum einlesen der csv und updaten der Datenbank
