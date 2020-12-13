@@ -95,7 +95,7 @@ app.get("/rates", (request, response) => {
   const zip = parseInt(request.query.zipCode);
   const consumption = parseFloat(request.query.consumption ?? "".replace(",", "."));
   if (zipIsValide && consumptionIsValide && !isNaN(consumption)) {
-    const tarife = db("SELECT tp.tarif_plz_id, t.name, tp.fixkosten, tp.variablekosten FROM tarif t, tarif_plz tp WHERE t.tarif_id = tp.tarif_id and plz = ?").all(zip);
+    const tarife = db("SELECT tp.tarif_plz_id, t.name, tp.fixkosten, tp.variablekosten FROM tarif t, tarif_plz tp WHERE t.tarif_id = tp.tarif_id and plz = ? AND aktiv = TRUE").all(zip);
     let calc = tarife.map((tarif) => {
       return {
         "id": tarif.tarif_plz_id,

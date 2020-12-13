@@ -17,14 +17,19 @@ class Importer {
      * @param {String} path 
      * @param {Function} callback 
      */
-    static importData(path = "./data.csv", callback = (error)=>{if (error) console.log("Nothing to update")}) {
+    static importData(path = "./data.csv", callback = (error)=>{if (error) console.log(error)}) {
       if (fs.existsSync(path)){
         try {
-          this.loadCSV(async (data) => this.import(data, callback), path);
+          this.loadCSV(async (data) => {
+            await this.import(data, callback);
+            fs.renameSync(path, "./data.old");
+          }, path);
         } catch (error) {
+          console.warn(error);
           callback(true);
         }
       }else{
+        console.console.warn();("file " + path + " does not exist");
         callback(true)
       };
     }
@@ -38,7 +43,7 @@ class Importer {
      * @param {String} path 
      * @param {Function} callback 
      */
-    static importFakeValues(amount = 1, path = "./data.csv", callback = (error)=>{if (error) console.log("Nothing to update")}){
+    static importFakeValues(amount = 1, path = "./data.csv", callback = (error)=>{if (error) console.log(error)}){
       console.log("Starting to insert fake values, only use for testing");
       if (fs.existsSync(path)){
         try {
@@ -55,11 +60,14 @@ class Importer {
                 }
               }), callback);
             }
+            fs.renameSync(path, "./data.old");
           }, path);
         } catch (error) {
+          console.log(error);
           callback(true);
         }
       }else{
+        console.warn("file " + path + " does not exist");
         callback(true)
       };
     }
@@ -76,9 +84,9 @@ class Importer {
         await Importer.importTarife(data);
         const seconds = Math.round((new Date() - startTime)/100)/10;
         console.info(`import done after ${seconds} seconds`);
-        fs.renameSync(path, "./data.old");
         callback();
       } catch (error) {
+        console.warn(error);
         callback(true);
       }
     }
