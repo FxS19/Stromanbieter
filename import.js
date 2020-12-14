@@ -29,7 +29,7 @@ class Importer {
           callback(true);
         }
       }else{
-        console.console.warn();("file " + path + " does not exist");
+        console.log("file " + path + " does not exist, no data is updated.");
         callback(true)
       };
     }

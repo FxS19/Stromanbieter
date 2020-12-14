@@ -10,7 +10,7 @@ const fs = require('fs');
 const db = require("./databaseCache");
 
 const importer = require("./import");
-importer.importData();
+importer.importData(undefined, ()=>{});
 
 
 
