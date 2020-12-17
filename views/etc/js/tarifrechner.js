@@ -25,7 +25,11 @@ function httpGetAsync(theUrl, callback) {
     xmlHttp.open("GET", theUrl, true); // true for asynchronous 
     xmlHttp.send(null);
 }
-
+/**
+ * Stelle eine Anfrage an den Server um die entsprechenden Tarife zu erhalten
+ * @param {number} plz angefragte plz
+ * @param {number} consumption angefragte kw/h pro Jahr
+ */
 function doRequest(plz, consumption) {
     httpGetAsync(`/rates?zipCode=${plz}&consumption=${consumption}`, (text, status) => {
         if (status == 200) {
