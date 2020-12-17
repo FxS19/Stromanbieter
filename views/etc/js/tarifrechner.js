@@ -4,13 +4,23 @@ $('document').ready(function(){
     })
 });
 
+
+/**
+ * Callback wird aufgerufen, wenn eine Antwort Vorliegt
+ * @callback httpGetCallback
+ * @param {string} responseMessage
+ * @param {number} status
+ */
+
+/**
+ * Mache einen http-get request
+ * @param {string} theUrl 
+ * @param {httpGetCallback} callback 
+ */
 function httpGetAsync(theUrl, callback) {
     var xmlHttp = new XMLHttpRequest();
-    xmlHttp.onreadystatechange = function () {
-        if (xmlHttp.readyState == 4) callback(xmlHttp.responseText, xmlHttp.status);
-    }
-    xmlHttp.onerror = function(){
-        $("#output").text("Keine Informationen für die eingegeben Daten vorhanden");
+    xmlHttp.onloadend = function () {
+        callback(xmlHttp.responseText, xmlHttp.status);
     }
     xmlHttp.open("GET", theUrl, true); // true for asynchronous 
     xmlHttp.send(null);
@@ -30,13 +40,52 @@ function doRequest(plz, consumption) {
                 heading.append($("<th>").text("Jahrespreis"));
                 heading.append($("<th>").text("Fixkosten"));
                 heading.append($("<th>").text("Preis kW/h"));
+                heading.append($("<th>").text("Variable Kosten"));
                 table.append(heading);
                 tarife.forEach(element => table.append(function(){
-                    return $("<tr>")
+                    const row = $("<tr>")
                     .append($("<td>").text(element.title))
                     .append($("<td>").text(element.calculatedPricePerYear + " €"))
                     .append($("<td>").text(element.basicPrice + " €"))
                     .append($("<td>").text(Math.floor(element.pricePerUnit*10000)/100 + " ct"));
+                    const chartContainer = $("<td>").text("Chart Loading...");
+                    row.append(chartContainer);
+                    httpGetAsync(`/tarif/${element.id}/history`, (message, status) => {
+                        const data = JSON.parse(message);
+                        chartContainer.text("");
+                        const chart = $("<canvas>").addClass("priceChart");
+                        chartContainer.append(chart);
+                        var myChart = new Chart(chart, {
+                            type: 'line',
+                            data: {
+                                datasets: [{
+                                    data: data.map((e) => {
+                                        return{
+                                            x: e.date,
+                                            y: e.pricePerUnit
+                                        }
+                                    }),
+                                    borderColor: "#f1d88c",
+                                    backgroundColor: "rgba(0, 0, 0, 0)",
+                                    steppedLine: "before"
+                                }]
+                            },
+                            options: {
+                                legend: {
+                                    display: false,
+                                },
+                                scales: {
+                                    xAxes: [{
+                                        type: 'time',
+                                        time: {
+                                            
+                                        }
+                                    }]
+                                }
+                            }
+                        });
+                    });
+                    return row;
                 }));
                 $("#output").append(table);
             } else {

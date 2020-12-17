@@ -62,7 +62,7 @@ app.get("/tarif/:id/history", (request, response)=>{
       const alleTarife = db(`SELECT tp.tarif_plz_id, t.name, tp.fixkosten, tp.variablekosten, tp.aktiv, tp.plz, tp.datum
       FROM tarif t, tarif_plz tp 
       WHERE tp.tarif_id = t.tarif_id AND tp.plz = ? AND tp.tarif_id = ?`).all(tarif.plz, tarif.tarif_id);
-      response.send(alleTarife.map((e)=>{return {
+      response.json(alleTarife.map((e)=>{return {
         "id": e.tarif_plz_id,
         "title": e.name,
         "zipCode": e.plz,
