@@ -1,5 +1,5 @@
-$('document').ready(function(){
-    $("#submitTarifRequest").click(function(){
+$('document').ready(function () {
+    $("#submitTarifRequest").click(function () {
         doRequest(document.getElementById('plz').value, document.getElementById('consumption').value);
     })
 });
@@ -46,12 +46,12 @@ function doRequest(plz, consumption) {
                 heading.append($("<th>").text("Preis kW/h"));
                 heading.append($("<th>").text("Variable Kosten"));
                 table.append(heading);
-                tarife.forEach(element => table.append(function(){
+                tarife.forEach(element => table.append(function () {
                     const row = $("<tr>")
-                    .append($("<td>").text(element.title))
-                    .append($("<td>").text(element.calculatedPricePerYear + " €"))
-                    .append($("<td>").text(element.basicPrice + " €"))
-                    .append($("<td>").text(Math.floor(element.pricePerUnit*10000)/100 + " ct"));
+                        .append($("<td>").text(element.title))
+                        .append($("<td>").text(element.calculatedPricePerYear + " €"))
+                        .append($("<td>").text(element.basicPrice + " €"))
+                        .append($("<td>").text(Math.floor(element.pricePerUnit * 10000) / 100 + " ct"));
                     const chartContainer = $("<td>").text("Chart Loading...");
                     row.append(chartContainer);
                     httpGetAsync(`/tarif/${element.id}/history`, (message, status) => {
@@ -63,12 +63,20 @@ function doRequest(plz, consumption) {
                             type: 'line',
                             data: {
                                 datasets: [{
-                                    data: data.map((e) => {
-                                        return{
-                                            x: e.date,
-                                            y: e.pricePerUnit
-                                        }
-                                    }),
+                                    data: (() => {
+                                        let ret = data.map((e) => {
+                                            return {
+                                                x: e.date,
+                                                y: e.pricePerUnit
+                                            }
+                                        });
+                                        //Füge den letzten Wert nocheinmal mit aktuellem Datum hinzu. Muss nicht sortiert werden, da vom Server bereits impliziert sortier über index/date Zusammenhang
+                                        ret[ret.length] = {
+                                            x: Date.now(),
+                                            y: data[data.length - 1].pricePerUnit
+                                        };
+                                        return ret;
+                                    })(),
                                     borderColor: "#f1d88c",
                                     backgroundColor: "rgba(0, 0, 0, 0)",
                                     steppedLine: "before"
@@ -82,7 +90,7 @@ function doRequest(plz, consumption) {
                                     xAxes: [{
                                         type: 'time',
                                         time: {
-                                            
+
                                         }
                                     }]
                                 }
