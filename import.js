@@ -3,7 +3,6 @@
 */
 const parse = require('csv-parse');
 const fs = require('fs');
-
 const provideDatabase = require('./database');
 const db = provideDatabase();
 
@@ -13,7 +12,7 @@ const db = provideDatabase();
  */
 class Importer {
     /**
-     * Einstiegsfunktion zum einlesen der csv und updaten der Datenbank
+     * Einstiegsfunktion zum Einlesen der csv und Updaten der Datenbank
      * @param {String} path 
      * @param {Function} callback 
      */
@@ -152,7 +151,7 @@ class Importer {
   
   /**
   * Lese vorhandenen Tarife aus dem csv import
-  * Falls es neue Tarife gibt, werden diese in die Datenbank importiert
+  * Falls es neue Tarife gibt, werden diese in die Datenbank importiert, doppelte Einträge werden zu einem.
   * @param  {Array} data
   */
   static async importTarife(data){
@@ -160,7 +159,7 @@ class Importer {
     let doublectr = 0;
     let newctr = 0;
 
-    //Alle Tarife deaktivieren
+    //Alle Tarife werden auf inaktiv gesetzt
     db.prepare(`
       UPDATE tarif_plz
       SET aktiv = FALSE 
@@ -193,22 +192,27 @@ class Importer {
       VALUES ((SELECT tarif_id FROM tarif where name = ?),?,?,?,TRUE)
     `);
 
+    //Jeder Datensatz wird durchlaufen und geprüft ob er bespeichert werden soll.
     for (let i = 0; i < data.length; i++) {
+      //Bietet eine Prozentanzeige beim Import der Daten
       if ( i % (Math.floor(data.length/10)) == 0) console.log(Math.round((i/data.length)*100) + "%"); 
       const element = data[i];
       //Der Tarif muss schon genau so gespeichert sein und er muss der Aktuellste der jewiligen plz/namen kombination sein
       const tarifExists = tarif_exists_stmt.get(element.tarifname, element.plz, element.fixkosten, element.variablekosten, element.tarifname, element.plz);
 
       if (tarifExists !== undefined){
-        if (tarifExists.aktiv){//Ist der Tarif schon aktiv? kann nur sein, wenn er doppelt vorkommt
+        if (tarifExists.aktiv){ //Ist der Tarif schon aktiv? kann nur sein, wenn er doppelt vorkommt
           doublectr++;
+          //Existiert der Tarif schon und ist er aktiv? Doppelte Werte werden zu eins. Hochzählen für Statistik.
         } else{
           tarif_enable_stmt.run(tarifExists.tarif_plz_id);
           samectr++;
+          //Tarif hat sich seit dem letzten Update nicht geändert.
         }
       }else{
         tarif_create_stmt.run(element.tarifname,element.plz,element.fixkosten,element.variablekosten);
         newctr++;
+        //Neuer Tarif ist dazugekommen
       }
     }
     console.info(`-----------\nNew: ${newctr}\nSame: ${samectr}\nDouble: ${doublectr}\n-----------`);
