@@ -46,7 +46,7 @@ function doRequest(plz, consumption) {
                 heading.append($("<th>").text("Name"));
                 heading.append($("<th>").text("Jahrespreis"));
                 heading.append($("<th>").text("Fixkosten"));
-                heading.append($("<th>").text("Preis kW/h"));
+                heading.append($("<th>").text("Preis kWh"));
                 table.append(heading);
                 /**Wiedergabe der möglichen Tarife für die PLZ und den Verbauch*/
                 tarife.forEach(element => table.append(function () {
@@ -86,7 +86,6 @@ function getHistory(tarifids) {
         /**Auruf der Tarif-Historien Rest-Schnittstelle und wiedergabe als Chart*/
         httpGetAsync(`/tarif/${element}/history`, (message, status) => {
             const data = JSON.parse(message);
-            console.log(data);
             historyrow.append($("<td>").text(data[0].title))
             const chartContainer = $("<td>").text("Chart Loading...");
             historyrow.append(chartContainer);
@@ -123,10 +122,19 @@ function getHistory(tarifids) {
                     scales: {
                         xAxes: [{
                             type: 'time',
-                            time: {
-
+                            time: {},
+                        }],
+                        yAxes:[{
+                            ticks: {
+                                min: 0,
+                                max: 1,
+                                stepSize: 0.1
+                            },
+                            scaleLabel: {
+                                display: true,
+                                labelString: '€/kWh'
                             }
-                        }]
+                        }],
                     }
                 }
             });
