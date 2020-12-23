@@ -49,7 +49,7 @@ class Importer {
           console.warn(error);
           callback(true);
         }
-      })
+      }, input);
     }
 
     /**
@@ -182,7 +182,7 @@ class Importer {
    */
   static loadString(callback, input){
     const csvData = [];
-    Readable.from(input.split("\n")).pipe(this.lineParser())
+    Readable.from(input).pipe(this.lineParser())
     .on('data', function (csvrow) {
       //console.log(csvrow);
       //do something with csvrow
@@ -266,6 +266,12 @@ class Importer {
       }
     }
     console.info(`-----------\nNew: ${newctr}\nSame: ${samectr}\nDouble: ${doublectr}\n-----------`);
+    return {
+      new: newctr,
+      same: samectr,
+      double: doublectr,
+      total: data.length
+    };
   }
 }
 

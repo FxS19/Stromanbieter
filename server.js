@@ -5,11 +5,13 @@
 // but feel free to use whatever libraries or frameworks you'd like through `package.json`.
 const express = require("express");
 const bodyParser = require("body-parser");
+const fileUpload = require('express-fileupload');
 const app = express();
 const fs = require('fs');
 const db = require("./databaseCache");
 
 const importer = require("./import");
+const { request, response } = require("express");
 importer.importData(undefined, ()=>{});
 
 
@@ -18,7 +20,17 @@ importer.importData(undefined, ()=>{});
 // https://expressjs.com/en/starter/static-files.html
 app.use(express.static("public"));
 
+// parse various different custom JSON types as JSON
 app.use(bodyParser.json())
+
+// parse some custom thing into a Buffer
+app.use(bodyParser.raw())
+
+// parse an HTML body into a string
+app.use(bodyParser.text())
+
+// enable files upload
+app.use(fileUpload());
 
 /**
  * Gebe einen Tarif durch eingabe der Tarif ID zurück
@@ -275,17 +287,36 @@ app.delete("/orders/:id", (request, response) => {
   }
 });
 
-
 /**
- * /update Schnittstelle
- * body Parameter "path" gibt den Pfad zur import Datei an
+ * Rest Schnittstelle zum updaten einer Datei, welche bereits auf dem Server verfügbar ist.
+ * body: {path: "path to file"} /default "data.csv"
+ * 
+ * output:
+ * String
  */
 app.post("/update", (request, response) => {
+  importer.importData(path = request.body.path ?? undefined, callback = (error = false) => {
+    if (error)
+      response.status(500).send("Server error");
+    else 
+      response.send("DONE");
+  });
+});
+
+
+/**
+ * Rest-Schnittstelle zum updaten der Datenbank
+ * den Inhalt der CSV als text im Body mit einem POST an /update senden
+ * 
+ * output:
+ * String
+ */
+app.post("/update/text", (request, response) => {
   console.log(request);
   if (typeof(request.body) == "string"){
     //muss noch auf string
-    importer.importString(path = request.body, callback = (error = false) => {
-      if (error)
+    importer.importString(input = request.body, callback = (error = false) => {
+      if (error === true)
         response.status(500).send("Server error");
       else 
         response.send("DONE");
@@ -293,7 +324,30 @@ app.post("/update", (request, response) => {
   }else{
     response.status(400).send("String as body required");
   }
-  
+});
+
+/**
+ * Restschnittstelle zum Updaten der Datenbank mittels Dateiuploads, als formdata
+ * der Key, en dem sich die Datei befindet ist frei oder mehrfach wählbar. Es darf nur eine Datei pro Key gewählt werden.
+ * 
+ * output:
+ * string
+ */
+app.post("/update/file", (request, response) => {
+  if(!request.files) {
+    response.status(400).send('No file uploaded');
+  } else {
+    for (let key in request.files){
+      console.log(`Try to import ${request.files[key].name}`);
+      importer.importString(input = request.files[key].data.toString("ascii"), callback = (error = false) => {
+        if (error === true)
+          response.status(500).send("Server error");
+        else 
+          response.send("DONE");
+      });
+      console.log();
+    }
+  }
 });
 
 
