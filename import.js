@@ -1,8 +1,10 @@
 /**
  * Diese Datei beinhaltet Funktionen zum Importieren einer CSV Datei in die Datenbank
-*/
+ */
+const { Parser } = require('csv-parse');
 const parse = require('csv-parse');
 const fs = require('fs');
+const { Readable } = require("stream");
 
 const provideDatabase = require('./database');
 const db = provideDatabase();
@@ -13,7 +15,7 @@ const db = provideDatabase();
  */
 class Importer {
     /**
-     * Einstiegsfunktion zum einlesen der csv und updaten der Datenbank
+     * Einstiegsfunktion zum Einlesen der csv und Updaten der Datenbank
      * @param {String} path 
      * @param {Function} callback 
      */
@@ -32,6 +34,22 @@ class Importer {
         console.log("file " + path + " does not exist, no data is updated.");
         callback(true)
       };
+    }
+
+    /**
+     * Einstiegsfunktion zum einlesen der csv und updaten der Datenbank
+     * @param {String} input 
+     * @param {Function} callback 
+     */
+    static importString(input, callback = (error)=>{if (error) console.log(error)}){
+      this.loadString(async (data) => {
+        try {
+          await this.import(data, callback);
+        }catch (error) {
+          console.warn(error);
+          callback(true);
+        }
+      })
     }
 
     /**
@@ -112,6 +130,27 @@ class Importer {
     }
 
     /**
+     * Return a Parser to parse a line of the given csv.
+     * @return {Parser}
+     */
+    static lineParser(){
+      return parse({
+        delimiter: ';',
+        cast: (value) => {
+          const isInt = parseInt(value);
+          if (!isNaN(isInt) && !value.search(",")){
+              return isInt;
+          }
+          const isFloat = parseFloat(value.replace(",","."));
+          if(!isNaN(isFloat)){
+              return isFloat;
+          }
+          return value;
+        },
+        columns: (names) => names.map((name) => name.toLowerCase()) });
+    }
+
+    /**
      * Lade data.csv und gebe die gelesenen Daten an die callbackfunktion weiter
      * @param {function} callback
      * @param {String} path
@@ -119,21 +158,7 @@ class Importer {
     static loadCSV(callback, path) {
         const csvData = [];
         fs.createReadStream(path) 
-          .pipe(parse({
-            delimiter: ';',
-            cast: (value) => {
-              const isInt = parseInt(value);
-              if (!isNaN(isInt) && !value.search(",")){
-                  return isInt;
-              }
-              const isFloat = parseFloat(value.replace(",","."));
-              if(!isNaN(isFloat)){
-                  return isFloat;
-              }
-              return value;
-            },
-            columns: (names) => names.map((name) => name.toLowerCase()) })
-          )
+          .pipe(this.lineParser())
           .on('data', function (csvrow) {
             //console.log(csvrow);
             //do something with csvrow
@@ -149,6 +174,30 @@ class Importer {
             callback(true);
           });
     }
+
+  /**
+   * Lade den String und gebe die gelesenen Daten an die callbackfunktion weiter
+   * @param {function} callback
+   * @param {String} input csv string
+   */
+  static loadString(callback, input){
+    const csvData = [];
+    Readable.from(input.split("\n")).pipe(this.lineParser())
+    .on('data', function (csvrow) {
+      //console.log(csvrow);
+      //do something with csvrow
+      csvData.push(csvrow);
+    })
+    .on('end', function () {
+      //do something with csvData
+      callback(csvData);
+    })
+    .on('error', (error) => {
+      
+      console.warn(error);
+      callback(true);
+    });
+  }
   
   /**
   * Lese vorhandenen Tarife aus dem csv import

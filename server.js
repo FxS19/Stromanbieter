@@ -264,12 +264,19 @@ app.delete("/orders/:id", (request, response) => {
  * body Parameter "path" gibt den Pfad zur import Datei an
  */
 app.post("/update", (request, response) => {
-  importer.importData(path = request.body.path ?? undefined, callback = (error = false) => {
-    if (error)
-      response.status(500).send("Server error");
-    else 
-      response.send("DONE");
-  });
+  console.log(request);
+  if (typeof(request.body) == "string"){
+    //muss noch auf string
+    importer.importString(path = request.body, callback = (error = false) => {
+      if (error)
+        response.status(500).send("Server error");
+      else 
+        response.send("DONE");
+    });
+  }else{
+    response.status(400).send("String as body required");
+  }
+  
 });
 
 /** Alle anderen Pfade auf /views umleiten, damit HTML Websiten möglich sind.
