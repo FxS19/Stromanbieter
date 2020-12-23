@@ -21,8 +21,11 @@ app.use(express.static("public"));
 app.use(bodyParser.json())
 
 /**
- * Gebe erinen Tarif nach id zurück
+ * Gebe einen Tarif durch eingabe der Tarif ID zurück
  * http://localhost:8080/tarif/1
+ * 
+ * output:
+ * [{id, title, zipCode, pricePerUnit, basicPrice, active},...]
  */
 app.get("/tarif/:id", (request, response)=> {
   const id = parseInt(request.params.id);
@@ -48,9 +51,12 @@ app.get("/tarif/:id", (request, response)=> {
 });
 
 /**
- * Gebe alle früheren Versionen des Tarif zurück
+ * Gebe alle früheren Versionen des Tarifs zurück
  * Betrachtet werden Preisänderungen, wenn der Tarif unter einem anderen Namen auftritt wird dies nicht beachtet
- * localhost:8080/tarif/1/history
+ * http://localhost:8080/tarif/1/history
+ * 
+ * output:
+ * [{id, title, zipCode, pricePerUnit, basicPrice, active, date},...]
  */
 app.get("/tarif/:id/history", (request, response)=>{
   const id = parseInt(request.params.id);
@@ -82,12 +88,13 @@ app.get("/tarif/:id/history", (request, response)=>{
 
 
 /**
- * Schnittstelle für /rates
+ * Gibt alle möglichen Tarife und Kosten für die eingegebene PLZ und Verbrauchswert zurück.
+ * http://localhost:8080/rates
  * input.body:
- * zipCode, consumption
+ * {zipCode, consumption}
  * 
  * output:
- * [{id, title, zipCode, pricePerUnit, basicPrice, consumption, calculatedPricePerYear}, ...]
+ * [{id, title, zipCode, pricePerUnit, basicPrice, consumption, calculatedPricePerYear},...]
  */
 app.get("/rates", (request, response) => {
   const zipIsValide = /^\d{5}$/.test(request.query.zipCode); //5-Stellige PLZ
@@ -115,12 +122,14 @@ app.get("/rates", (request, response) => {
 });
 
 
-
 /**
- * Irmas Bestellung Schnittstelle
- */
-/**
- * /orders um Bestellungen anzulegen
+ * Legt eine Bestellung mit gegeben Daten für einen Tarif an
+ * http://localhost:8080/orders
+ * input.body:
+ * {firstName, lastName, street, streetNumberzipCode, city, rateId, consumption, agent}
+ * 
+ * output:
+ * {id, calculatedPricePerYear}
  */
 app.post("/orders", (request, response) => {
   //Prüfung für Valide Werte
@@ -192,9 +201,13 @@ app.post("/orders", (request, response) => {
   }
 });
 
+
 /**
- * /orders/ um Bestellungen anzusehen?
- * localhost:8080/orders/2?zipCode=74564&firstName=Irma3&lastName=Miller4
+ * Gibt eine Bestellung mit gegeben Daten für einen Tarif zurück
+ * http://localhost:8080/orders/2?zipCode=xxxxx&firstName=xxxxx&lastName=xxxxx
+ * 
+ * output:
+ * {id, tarif, calculatedPricePerYear, aktiv, bestellDatum, firstName, lastName, street, streetnumber, zipCode}
  */
 app.get("/orders/:id", (request, response) => {
   const id = parseInt(request.params.id);
@@ -228,15 +241,18 @@ app.get("/orders/:id", (request, response) => {
     });
   }
 });
-/**
-* /orders/ um Bestellungen zu Stornieren?
-* localhost:8080/orders/2?zipCode=74564&firstName=Irma3&lastName=Miller4
-*/
-app.delete("/orders/:id", (request, response) => {
 
+
+/**
+ * Löscht die Bestellung die mit den eingegen gegeben Daten übereinstimmt
+ * http://localhost:8080/orders/2?zipCode=xxxxx&firstName=xxxxx&lastName=xxxxx
+ * 
+ * output:
+ * String
+ */
+app.delete("/orders/:id", (request, response) => {
   const id = parseInt(request.params.id);
   const zip = parseInt(request.query.zipCode);
-
   const bestellung = db(`SELECT * FROM bestellung 
     WHERE bestell_id = ?
     AND firstname = ?
@@ -259,6 +275,7 @@ app.delete("/orders/:id", (request, response) => {
   }
 });
 
+
 /**
  * /update Schnittstelle
  * body Parameter "path" gibt den Pfad zur import Datei an
@@ -279,9 +296,10 @@ app.post("/update", (request, response) => {
   
 });
 
+
 /** Alle anderen Pfade auf /views umleiten, damit HTML Websiten möglich sind.
  *  Es müssen alle speziellen Handler vor diesem Punkt definiert werden, alles unterhalb wird ignoriert
- * Die Struktur entspricht dabei dem weglassen von /views
+ *  Die Struktur entspricht dabei dem weglassen von /views
  *  Bsp.: Anfrage /index.html Antwort: ./views/index.html
  *  Rückgabe von 404 wenn nicht vorhanden
 */
@@ -309,6 +327,10 @@ app.get("/", (request, response) => {
     response.status(404).send("404 Not Found");
   }
 });
+
+/** 
+ * Starten des Severs
+*/
 const listener = app.listen(8080, () => {
   console.log("Your app is listening on port " + listener.address().port);
 });
