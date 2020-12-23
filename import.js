@@ -6,8 +6,7 @@ const parse = require('csv-parse');
 const fs = require('fs');
 const { Readable } = require("stream");
 
-const provideDatabase = require('./database');
-const db = provideDatabase();
+const db = require("./databaseCache");
 
 /**
  * Klasse zum Importieren von Daten aus einer CSV
@@ -116,14 +115,12 @@ class Importer {
      */
     static async importTarifnamen(data) {
         const tarife = data.map((value) => value.tarifname).filter((v, i, a) => a.indexOf(v) === i);
-        const insert_stmt = db.prepare(`INSERT INTO tarif (name) VALUES (?)`);
-        const test_stmt = db.prepare(`SELECT * FROM tarif WHERE name = ?`);
         for (let i = 0; i < tarife.length; i++) {
             const name = tarife[i];
-            const result = test_stmt.get(name);
+            const result = db(`SELECT * FROM tarif WHERE name = ?`).get(name);
             if (result === undefined) {
                 console.log("Inserting Tarif " + name);
-                await insert_stmt.run(name);
+                await db(`INSERT INTO tarif (name) VALUES (?)`).run(name);
             }
         }
         //console.log(await db.all("SELECT * FROM tarif"));
@@ -210,37 +207,12 @@ class Importer {
     let newctr = 0;
 
     //Alle Tarife werden auf inaktiv gesetzt
-    db.prepare(`
+    db(`
       UPDATE tarif_plz
       SET aktiv = FALSE 
       WHERE aktiv = TRUE;
     `).run();
     console.info(`Updating database with ${data.length} values!`);
-    const tarif_exists_stmt = db.prepare(`
-      SELECT tarif_plz_id, aktiv 
-          FROM tarif_plz 
-          INNER JOIN tarif 
-            ON tarif_plz.tarif_id = tarif.tarif_id 
-          WHERE name = ? 
-          AND plz = ? 
-          AND fixkosten = ? 
-          AND variablekosten = ?
-          AND datum = (
-            SELECT MAX(datum) FROM tarif_plz
-            INNER JOIN tarif 
-              ON tarif_plz.tarif_id = tarif.tarif_id 
-            WHERE name = ? 
-            AND plz = ?);
-    `);
-    const tarif_enable_stmt = db.prepare(`
-      UPDATE tarif_plz
-      SET aktiv = TRUE
-      WHERE tarif_plz_id = ?;
-    `);
-    const tarif_create_stmt = db.prepare(`
-      INSERT INTO tarif_plz (tarif_id,plz,fixkosten,variablekosten,aktiv)
-      VALUES ((SELECT tarif_id FROM tarif where name = ?),?,?,?,TRUE)
-    `);
 
     //Jeder Datensatz wird durchlaufen und geprüft ob er bespeichert werden soll.
     for (let i = 0; i < data.length; i++) {
@@ -248,19 +220,38 @@ class Importer {
       if ( i % (Math.floor(data.length/10)) == 0) console.log(Math.round((i/data.length)*100) + "%"); 
       const element = data[i];
       //Der Tarif muss schon genau so gespeichert sein und er muss der Aktuellste der jewiligen plz/namen kombination sein
-      const tarifExists = tarif_exists_stmt.get(element.tarifname, element.plz, element.fixkosten, element.variablekosten, element.tarifname, element.plz);
+      const tarifExists = db(`SELECT tarif_plz_id, aktiv 
+                              FROM tarif_plz 
+                              INNER JOIN tarif 
+                                ON tarif_plz.tarif_id = tarif.tarif_id 
+                              WHERE name = ? 
+                              AND plz = ? 
+                              AND fixkosten = ? 
+                              AND variablekosten = ?
+                              AND datum = (
+                                SELECT MAX(datum) FROM tarif_plz
+                                INNER JOIN tarif 
+                                  ON tarif_plz.tarif_id = tarif.tarif_id 
+                                WHERE name = ? 
+                                AND plz = ?);`)
+                            .get(element.tarifname, element.plz, element.fixkosten, element.variablekosten, element.tarifname, element.plz);
 
       if (tarifExists !== undefined){
         if (tarifExists.aktiv){ //Ist der Tarif schon aktiv? kann nur sein, wenn er doppelt vorkommt
           doublectr++;
           //Existiert der Tarif schon und ist er aktiv? Doppelte Werte werden zu eins. Hochzählen für Statistik.
         } else{
-          tarif_enable_stmt.run(tarifExists.tarif_plz_id);
+          db(`UPDATE tarif_plz
+              SET aktiv = TRUE
+              WHERE tarif_plz_id = ?;`)
+          .run(tarifExists.tarif_plz_id);
           samectr++;
           //Tarif hat sich seit dem letzten Update nicht geändert.
         }
       }else{
-        tarif_create_stmt.run(element.tarifname,element.plz,element.fixkosten,element.variablekosten);
+        db(`INSERT INTO tarif_plz (tarif_id,plz,fixkosten,variablekosten,aktiv)
+            VALUES ((SELECT tarif_id FROM tarif where name = ?),?,?,?,TRUE)`)
+        .run(element.tarifname,element.plz,element.fixkosten,element.variablekosten);
         newctr++;
         //Neuer Tarif ist dazugekommen
       }
