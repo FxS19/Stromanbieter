@@ -10,7 +10,6 @@ const db = require("./databaseCache");
 
 /**
  * Klasse zum Importieren von Daten aus einer CSV
- * Alle Member sind static
  */
 class Importer {
     /**
@@ -18,7 +17,7 @@ class Importer {
      * @param {String} path 
      * @param {Function} callback 
      */
-    static importData(path = "./data.csv", callback = (error)=>{if (error) console.log(error)}) {
+    importData(path = "./data.csv", callback = (error)=>{if (error) console.log(error)}) {
       if (fs.existsSync(path)){
         try {
           this.loadCSV(async (data) => {
@@ -40,7 +39,7 @@ class Importer {
      * @param {String} input 
      * @param {Function} callback 
      */
-    static importString(input, callback = (error)=>{if (error) console.log(error)}){
+    importString(input, callback = (error)=>{if (error) console.log(error)}){
       this.loadString(async (data) => {
         try {
           await this.import(data, callback);
@@ -60,7 +59,7 @@ class Importer {
      * @param {String} path 
      * @param {Function} callback 
      */
-    static importFakeValues(amount = 1, path = "./data.csv", callback = (error)=>{if (error) console.log(error)}){
+    importFakeValues(amount = 1, path = "./data.csv", callback = (error)=>{if (error) console.log(error)}){
       console.log("Starting to insert fake values, only use for testing");
       if (fs.existsSync(path)){
         try {
@@ -94,11 +93,11 @@ class Importer {
      * @param {Array<Object>} data Liste an Werten mit folgendem Aufbau {tarifname, plz, fixkosten, variablekosten}
      * @param {function} callback
      */
-    static async import(data, callback){
+    async import(data, callback){
       try {
         const startTime = new Date();
-        await Importer.importTarifnamen(data);
-        await Importer.importTarife(data);
+        await this.importTarifnamen(data);
+        await this.importTarife(data);
         const seconds = Math.round((new Date() - startTime)/100)/10;
         console.info(`import done after ${seconds} seconds`);
         callback();
@@ -113,7 +112,7 @@ class Importer {
      * Falls es neue Tarife gibt, werden diese in die Datenbank importier
      * @param  {Array} data
      */
-    static async importTarifnamen(data) {
+    async importTarifnamen(data) {
         const tarife = data.map((value) => value.tarifname).filter((v, i, a) => a.indexOf(v) === i);
         for (let i = 0; i < tarife.length; i++) {
             const name = tarife[i];
@@ -130,7 +129,7 @@ class Importer {
      * Return a Parser to parse a line of the given csv.
      * @return {Parser}
      */
-    static lineParser(){
+    lineParser(){
       return parse({
         delimiter: ';',
         cast: (value) => {
@@ -152,7 +151,7 @@ class Importer {
      * @param {function} callback
      * @param {String} path
      */
-    static loadCSV(callback, path) {
+    loadCSV(callback, path) {
         const csvData = [];
         fs.createReadStream(path) 
           .pipe(this.lineParser())
@@ -177,7 +176,7 @@ class Importer {
    * @param {function} callback
    * @param {String} input csv string
    */
-  static loadString(callback, input){
+  loadString(callback, input){
     const csvData = [];
     Readable.from(input).pipe(this.lineParser())
     .on('data', function (csvrow) {
@@ -201,7 +200,7 @@ class Importer {
   * Falls es neue Tarife gibt, werden diese in die Datenbank importiert, doppelte Einträge werden zu einem.
   * @param  {Array} data
   */
-  static async importTarife(data){
+  async importTarife(data){
     let samectr = 0;
     let doublectr = 0;
     let newctr = 0;
