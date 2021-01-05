@@ -17,3 +17,17 @@ Die Schnittstelle kann mit dem Pfad "[serveradresse]/api" angesteuert weren. Es 
 
 # Website
 Die Website zeigt dier über die REST schnittstelle erhaltenen Daten an.
+
+# Anleitung für die DB ???
+Bei Fehler Linux verwendet
+
+# Better-sqlite3
+Benutzen von Better-sqlite3
+Bietet eine einheitlichere Schnittstelle zu JS.
+zudem ist Vorkompilieren von Querries möglich, sowie das schreiben von aggregaten.
+ Mehr Informationen unter: https://github.com/JoshuaWise/better-sqlite3/blob/HEAD/docs/api.md
+
+# Datenbank zurücksetzten
+Tabellen erstellen
+rm .data/* <--alle Dateien in .data löschen (reset)
+
