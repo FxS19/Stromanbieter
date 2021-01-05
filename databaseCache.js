@@ -1,3 +1,8 @@
+/**
+ * Mapt Better SQLite3.prepare auf ein Modul, welches die Preparierten Statements zwischenspeichert und bei Bedarf zurückgibt.
+ * @module databaseCache
+ * @see module:BetterSqlite3
+ */
 
 const db = require("./database")();
 const crypto = require("crypto");
@@ -5,9 +10,11 @@ const crypto = require("crypto");
 const statements= {};
 
 /**
- *  Stelle eine Funktion bereit, welche SQL-Statements automatisch kompiliert und diese bei erneutem Eintreten aus dem Speicher entnimmt.
- *  Somit ist das Kompilieren nur einmal pro Serverstart notwendig.
- *  @param sql String
+ * Stelle eine Funktion bereit, welche SQL-Statements automatisch kompiliert und diese bei erneutem Eintreten aus dem Speicher entnimmt.
+ * Somit ist das Kompilieren nur einmal pro Serverstart notwendig.
+ * @param {String} sql Statement
+ * @return {BetterSqlite3.prepare} BetterSQLite3 statement
+ * @see BetterSQLite3.prepare
  */
 module.exports = function (sql) {
     const hash = crypto
