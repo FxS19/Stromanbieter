@@ -4,7 +4,9 @@
  * @see module:BetterSqlite3
  */
 
+ /** Datenbankverbindung aus database.js*/
 const db = require("./database")();
+/** Benötigt zum Berechnen von Hash-Werten */
 const crypto = require("crypto");
   
 const statements= {};
