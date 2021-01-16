@@ -15,7 +15,7 @@ const imp = require('./import')
 
 // make all the files in 'public' available
 // https://expressjs.com/en/starter/static-files.html
-app.use(express.static("public"));
+app.use(express.static("views"));
 
 // parse various different custom JSON types as JSON
 app.use(bodyParser.json())
@@ -349,38 +349,6 @@ app.post("/update/file", (request, response) => {
             });
             console.log();
         }
-    }
-});
-
-
-/** Alle anderen Pfade auf /views umleiten, damit HTML Websiten möglich sind.
- *  Es müssen alle speziellen Handler vor diesem Punkt definiert werden, alles unterhalb wird ignoriert
- *  Die Struktur entspricht dabei dem weglassen von /views
- *  Bsp.: Anfrage /index.html Antwort: ./views/index.html
- *  Rückgabe von 404 wenn nicht vorhanden
- */
-app.get("/:path*", (request, response) => {
-    console.log(request.path);
-    if (fs.existsSync(__dirname + "/views" + request.path)) {
-        response.sendFile(__dirname + "/views" + request.path);
-    } else {
-        response.status(404).send("404 Not Found");
-    }
-});
-app.get("*:path/", (request, response) => {
-    console.log(request.path);
-    if (fs.existsSync(__dirname + "/views" + request.path + "/index.html")) {
-        response.sendFile(__dirname + "/views" + request.path + "/index.html");
-    } else {
-        response.status(404).send("404 Not Found");
-    }
-});
-app.get("/", (request, response) => {
-    console.log(request.path);
-    if (fs.existsSync(__dirname + "/views/index.html")) {
-        response.sendFile(__dirname + "/views/index.html");
-    } else {
-        response.status(404).send("404 Not Found");
     }
 });
 
