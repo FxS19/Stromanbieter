@@ -7,9 +7,7 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const fileUpload = require('express-fileupload');
 const app = express();
-const fs = require('fs');
 const db = require("./databaseCache");
-const { request, response } = require("express");
 const imp = require('./import')
 
 
