@@ -111,7 +111,7 @@ app.get("/rates", (request, response) => {
     const zipIsValide = /^\d{5}$/.test(request.query.zipCode); //5-Stellige PLZ
     const consumptionIsValide = /^\d+([\.,]\d+)?$/.test(request.query.consumption); //int oder fkz[,.]
     const zip = parseInt(request.query.zipCode);
-    const consumption = parseFloat(request.query.consumption ? ? "".replace(",", "."));
+    const consumption = parseFloat(request.query.consumption ? request.query.consumption : "".replace(",", "."));
     if (zipIsValide && consumptionIsValide && !isNaN(consumption)) {
         const tarife = db("SELECT tp.tarif_plz_id, t.name, tp.fixkosten, tp.variablekosten FROM tarif t, tarif_plz tp WHERE t.tarif_id = tp.tarif_id and plz = ? AND aktiv = TRUE").all(zip);
         let calc = tarife.map((tarif) => {
@@ -295,7 +295,7 @@ app.delete("/orders/:id", (request, response) => {
  */
 app.post("/update", (request, response) => {
     const importer = new imp();
-    importer.importData(path = request.body.path ? ? undefined, callback = (error = false) => {
+    importer.importData(path = request.body.path ? request.body.path : undefined, callback = (error = false) => {
         if (error)
             response.status(500).send("Server error");
         else
