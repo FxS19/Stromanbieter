@@ -1,7 +1,7 @@
 /** Wird aufgerufen wenn die Seite fertig geladen ist*/
-$('document').ready(function () {
+$('document').ready(function() {
     /** Belegt den Button mit der funktion doRequest*/
-    $("#submitTarifRequest").click(function () {
+    $("#submitTarifRequest").click(function() {
         doRequest(document.getElementById('plz').value, document.getElementById('consumption').value);
     })
 });
@@ -14,66 +14,65 @@ $('document').ready(function () {
  */
 
 /**
- * Mache einen http-get request
- * @param {string} theUrl 
- * @param {httpGetCallback} callback 
- */
-function httpGetAsync(theUrl, callback) {
-    var xmlHttp = new XMLHttpRequest();
-    xmlHttp.onloadend = function () {
-        callback(xmlHttp.responseText, xmlHttp.status);
-    }
-    xmlHttp.open("GET", theUrl, true); // true for asynchronous 
-    xmlHttp.send(null);
-}
-
-/**
- * Stelle eine Anfrage an den Server um die entsprechenden Tarif-Informationen zu erhalten
+ * Starte den Prozess zum Aktualisieren der angezeigten Elemente
  * @param {number} plz angefragte plz
  * @param {number} consumption angefragte kw/h pro Jahr
  */
-function doRequest(plz, consumption) {
+async function doRequest(plz, consumption) {
+    let tarifids = await getKosten(plz, consumption);
+    getHistory(tarifids);
+}
+
+/**
+ * Akualisiere die Kosten der Tarife
+ * @param {number} plz angefragte plz
+ * @param {number} consumption angefragte kw/h pro Jahr
+ * @returns {Array<Number>} Gefundene Tarif id's
+ */
+async function getKosten(plz, consumption) {
+    let ret = {};
     /**Auruf der Rates Rest-Schnittstelle und wieder gabe als Tabelle */
-    httpGetAsync(`/rates?zipCode=${plz}&consumption=${consumption}`, (text, status) => {
-        if (status == 200) {
-            const tarife = JSON.parse(text);
-            console.log(tarife);
-            if (tarife.length > 0) {
-                $("#output").html("");
-                $("#output").text("");
-                const table = $("<table>");
-                const heading = $("<tr>");
-                heading.append($("<th>").text("Name"));
-                heading.append($("<th>").text("Jahrespreis"));
-                heading.append($("<th>").text("Fixkosten"));
-                heading.append($("<th>").text("Preis kWh"));
-                table.append(heading);
-                /**Wiedergabe der möglichen Tarife für die PLZ und den Verbauch*/
-                tarife.forEach(element => table.append(function () {
+    const response = await fetch(`/rates?zipCode=${plz}&consumption=${consumption}`);
+    if (response.status == 200) {
+        const tarife = await response.json();
+        console.log(tarife);
+        if (tarife.length > 0) {
+            $("#output").html("");
+            $("#output").text("");
+            const table = $("<table>");
+            const heading = $("<tr>");
+            heading.append($("<th>").text("Name"));
+            heading.append($("<th>").text("Jahrespreis"));
+            heading.append($("<th>").text("Fixkosten"));
+            heading.append($("<th>").text("Preis kWh"));
+            table.append(heading);
+            /**Wiedergabe der möglichen Tarife für die PLZ und den Verbauch*/
+            for (element of tarife)
+                table.append(function() {
                     const row = $("<tr>")
                         .append($("<td>").text(element.title))
                         .append($("<td>").text(element.calculatedPricePerYear + " €"))
                         .append($("<td>").text(element.basicPrice + " €"))
                         .append($("<td>").text(Math.floor(element.pricePerUnit * 10000) / 100 + " ct"));
                     return row;
-                }));
-                tarife.map((tarif) => { return tarif.id });
-                getHistory(tarife.map((tarif) => { return tarif.id }));
-                $("#output").append(table);
-            } else {
-                $("#output").text("Keine Daten für die eingegebe PLZ");
-            }
+                });
+            $("#output").append(table);
+            ret = tarife.map((tarif) => { return tarif.id });
         } else {
-            $("#output").text("Keine Informationen für die eingegeben Daten vorhanden");
+            $("#output").text("Keine Daten für die eingegebe PLZ");
         }
-    });
+    } else {
+        $("#output").text("Keine Informationen für die eingegeben Daten vorhanden");
+    }
+    return ret;
 }
 
 /**
  * Stelle, mit den übergebenen Tarif-Ids, eine Anfrage an den Server um die entsprechende Historie anzeigen zu lassen.
  * @param {Array<number>} tarifids 
  */
-function getHistory(tarifids) {
+async function getHistory(tarifids) {
+    console.log(tarifids);
     $("#historyoutput").html("");
     $("#historyoutput").text("");
     const table = $("<table>");
@@ -81,12 +80,13 @@ function getHistory(tarifids) {
     heading.append($("<th>").text("Name"));
     heading.append($("<th>").text("Variable Kosten"));
     table.append(heading);
-    tarifids.forEach(element => table.append(function () {
+    for (const element of tarifids) {
         const historyrow = $("<tr>");
         /**Auruf der Tarif-Historien Rest-Schnittstelle und wiedergabe als Chart*/
-        httpGetAsync(`/tarif/${element}/history`, (message, status) => {
-            const data = JSON.parse(message);
-            historyrow.append($("<td>").text(data[0].title))
+        const response = await fetch(`/tarif/${element}/history`);
+        if (response.status == 200) {
+            const data = await response.json();
+            historyrow.append($("<td>").text(data[0].title));
             const chartContainer = $("<td>").text("Chart Loading...");
             historyrow.append(chartContainer);
             chartContainer.text("");
@@ -124,7 +124,7 @@ function getHistory(tarifids) {
                             type: 'time',
                             time: {},
                         }],
-                        yAxes:[{
+                        yAxes: [{
                             ticks: {
                                 min: 0,
                                 max: 1,
@@ -139,8 +139,10 @@ function getHistory(tarifids) {
                 }
             });
 
-        });
-        return historyrow;
-    }));
+        } else {
+            historyrow.append($("<td>").text("Fehler in der Datenverarbeitung"));
+        }
+        table.append(historyrow);
+    }
     $("#historyoutput").append(table);
 }
