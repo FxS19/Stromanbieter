@@ -65,6 +65,7 @@ function doRequest(plz, consumption) {
             }
         } else {
             $("#output").text("Keine Informationen für die eingegeben Daten vorhanden");
+            $("#historyoutput").text("Keine Informationen für die eingegeben Daten vorhanden");
         }
     });
 }
