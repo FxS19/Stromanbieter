@@ -59,7 +59,7 @@ async function getKosten(plz, consumption) {
             $("#output").append(table);
             ret = tarife.map((tarif) => { return tarif.id });
         } else {
-            $("#output").text("Keine Daten für die eingegebe PLZ");
+            $("#output").text("Keine Informationen für die eingegeben Daten vorhanden");
         }
     } else {
         $("#output").text("Keine Informationen für die eingegeben Daten vorhanden");
