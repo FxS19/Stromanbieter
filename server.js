@@ -8,7 +8,7 @@ const bodyParser = require("body-parser");
 const fileUpload = require('express-fileupload');
 const app = express();
 const db = require("./databaseCache");
-const imp = require('./import')
+const Importer = require("./import");
 
 
 // make all the files in 'public' available
@@ -292,7 +292,7 @@ app.delete("/orders/:id", (request, response) => {
  * String
  */
 app.post("/update", (request, response) => {
-    const importer = new imp();
+    const importer = new Importer();
     importer.importData(path = request.body.path ? request.body.path : undefined, callback = (error = false) => {
         if (error)
             response.status(500).send("Server error");
@@ -310,7 +310,7 @@ app.post("/update", (request, response) => {
  * String
  */
 app.post("/update/text", (request, response) => {
-    const importer = new imp();
+    const importer = new Importer();
     console.log(request);
     if (typeof(request.body) == "string") {
         //muss noch auf string
@@ -333,7 +333,7 @@ app.post("/update/text", (request, response) => {
  * string
  */
 app.post("/update/file", (request, response) => {
-    const importer = new imp();
+    const importer = new Importer();
     if (!request.files) {
         response.status(400).send('No file uploaded');
     } else {
