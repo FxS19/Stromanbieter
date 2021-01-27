@@ -30,7 +30,7 @@ async function doRequest(plz, consumption) {
  * @returns {Array<Number>} Gefundene Tarif id's
  */
 async function getKosten(plz, consumption) {
-    let ret = {};
+    let ret = [];
     /**Auruf der Rates Rest-Schnittstelle und wieder gabe als Tabelle */
     const response = await fetch(`/rates?zipCode=${plz}&consumption=${consumption}`);
     if (response.status == 200) {
@@ -75,6 +75,7 @@ async function getHistory(tarifids) {
     console.log(tarifids);
     $("#historyoutput").html("");
     $("#historyoutput").text("");
+    if (tarifids.length == 0) return;
     const table = $("<table>");
     const heading = $("<tr>");
     heading.append($("<th>").text("Name"));
