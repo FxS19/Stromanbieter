@@ -52,8 +52,7 @@ class Importer {
     }
 
     /**
-     * Erstelle fake Werte in der Datenbank, welche auf der Struktur der angegebenen CSV aufbauen
-     * in die Debug Konsole eingeben um mindestens 2 Sätze an Fakedaten pro vorhandenem Tarif zu erstellen
+     * Erstelle fake Werte in der Datenbank, welche auf der Struktur der angegebenen CSV aufbauen.
      * Achtung das Ausführen kann einige Zeit dauern.
      * @param {Integer} amount Minimum pro Tarif, abhängig von der csv
      * @param {String} path 
